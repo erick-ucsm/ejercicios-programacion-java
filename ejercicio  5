@@ -1,0 +1,38 @@
+package laboratorio1;
+
+import java.util.Scanner;
+
+public class ejercicio5 {
+
+    public static void main(String[] args) {
+
+        Scanner valor = new Scanner(System.in);
+
+        System.out.print("Ingrese las horas: ");
+        int horas = valor.nextInt();
+
+        imprimirCargo(horas);
+
+        valor.close();
+    }
+
+    public static void imprimirCargo(int horas) {
+
+        double cargo;
+
+        if (horas <= 0) {
+            cargo = 0;
+        }
+        else if (horas == 1) {
+            cargo = 3.00;
+        }
+        else if (horas <= 19) {
+            cargo = 3.00 + ((horas - 1) * 0.50);
+        }
+        else {
+            cargo = 12.00;
+        }
+
+        System.out.println("El cargo es de S/ " + cargo);
+    }
+}
