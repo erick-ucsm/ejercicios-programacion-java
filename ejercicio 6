@@ -1,0 +1,31 @@
+package laboratorio1;
+
+import java.util.Scanner;
+
+public class ejercicio6 {
+
+    public static void main(String[] args) {
+
+        Scanner valor = new Scanner(System.in);
+
+        System.out.println("Ingresar horas:");
+        int horas = valor.nextInt();
+
+        System.out.println("Ingresar minutos:");
+        int minutos = valor.nextInt();
+
+        System.out.println("Ingresar segundos:");
+        int segundos = valor.nextInt();
+
+        convertirSegundos(horas, minutos, segundos);
+
+        valor.close();
+    }
+
+    public static void convertirSegundos(int horas, int minutos, int segundos) {
+
+        int total = (horas * 3600) + (minutos * 60) + segundos;
+
+        System.out.println("El total de segundos es: " + total);
+    }
+}
