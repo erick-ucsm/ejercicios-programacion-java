@@ -1,0 +1,16 @@
+package laboratorio1;
+
+public class ejercicio3 {
+	public static void main(String[] args) {
+		int [] contador = new int [6];
+		for (int i = 0; i < 20000; i++) {
+			int frecuencia = (int)(Math.random()*6)+1;
+			int dado = frecuencia - 1;
+			contador[dado]++;
+		}
+		for (int a = 0; a <= 5; a++) {
+			System.out.println("frecuencia del numero "+ (a + 1) + " del dado es: " + contador[a]);
+		}
+			
+	}
+}
