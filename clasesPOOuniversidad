@@ -1,0 +1,502 @@
+package laboratorio2;
+import java.util.Scanner;
+
+public class ejercicio1 {
+
+	public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        SistemaGestion sistema = new SistemaGestion();
+
+        int opcion;
+
+        do {
+            System.out.println("\n===== SISTEMA DE GESTIÓN DE CURSOS =====");
+            System.out.println("1. Registrar estudiante");
+            System.out.println("2. Registrar profesor");
+            System.out.println("3. Matricular estudiante");
+            System.out.println("4. Mostrar cursos");
+            System.out.println("5. Mostrar cursos con estudiantes");
+            System.out.println("6. Salir");
+            System.out.print("Seleccione una opción: ");
+
+            opcion = scanner.nextInt();
+            scanner.nextLine();
+
+            switch (opcion) {
+
+                case 1:
+                    sistema.registrarEstudiante(scanner);
+                    break;
+
+                case 2:
+                    sistema.registrarProfesor(scanner);
+                    break;
+
+                case 3:
+                    sistema.matricularEstudiante(scanner);
+                    break;
+
+                case 4:
+                    sistema.mostrarCursos();
+                    break;
+
+                case 5:
+                    sistema.mostrarCursosConEstudiantes();
+                    break;
+
+                case 6:
+                    System.out.println("Programa finalizado.");
+                    break;
+
+                default:
+                    System.out.println("Opción no válida.");
+            }
+
+        } while (opcion != 6);
+
+        scanner.close();
+    }
+}
+
+
+/*
+ * CLASE ABSTRACTA
+ */
+abstract class Persona {
+
+    protected String nombre;
+    protected String dni;
+
+    public Persona(String nombre, String dni) {
+        this.nombre = nombre;
+        this.dni = dni;
+    }
+
+    public abstract void mostrarInformacion();
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public String getDni() {
+        return dni;
+    }
+}
+
+
+/*
+ * CLASE ESTUDIANTE
+ * HEREDA DE PERSONA
+ */
+class Estudiante extends Persona {
+
+    private String codigo;
+    private Curso curso;
+
+    private static int cantidadEstudiantes = 0;
+
+    public Estudiante(String nombre, String dni, String codigo) {
+        super(nombre, dni);
+        this.codigo = codigo;
+        cantidadEstudiantes++;
+    }
+
+    @Override
+    public void mostrarInformacion() {
+        System.out.println("Nombre: " + nombre);
+        System.out.println("DNI: " + dni);
+        System.out.println("Código: " + codigo);
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public Curso getCurso() {
+        return curso;
+    }
+
+    public void setCurso(Curso curso) {
+        this.curso = curso;
+    }
+
+    public static int getCantidadEstudiantes() {
+        return cantidadEstudiantes;
+    }
+}
+
+
+/*
+ * CLASE PROFESOR
+ * HEREDA DE PERSONA
+ */
+class Profesor extends Persona {
+
+    private String especialidad;
+    private Curso curso;
+
+    public Profesor(String nombre, String dni, String especialidad) {
+        super(nombre, dni);
+        this.especialidad = especialidad;
+    }
+
+    @Override
+    public void mostrarInformacion() {
+        System.out.println("Nombre: " + nombre);
+        System.out.println("DNI: " + dni);
+        System.out.println("Especialidad: " + especialidad);
+    }
+
+    public String getEspecialidad() {
+        return especialidad;
+    }
+
+    public Curso getCurso() {
+        return curso;
+    }
+
+    public void setCurso(Curso curso) {
+        this.curso = curso;
+    }
+}
+
+
+/*
+ * INTERFAZ
+ */
+interface Matriculable {
+
+    void matricularEstudiante(Estudiante estudiante);
+
+    int cantidadEstudiantes();
+}
+
+
+/*
+ * CLASE CURSO
+ */
+class Curso implements Matriculable {
+
+    public static final int MAX_ESTUDIANTES_CURSO = 5;
+
+    private String codigo;
+    private String nombre;
+    private Profesor profesor;
+    private int capacidad;
+
+    private Estudiante[] estudiantes;
+
+    public Curso(String codigo, String nombre, Profesor profesor, int capacidad) {
+
+        this.codigo = codigo;
+        this.nombre = nombre;
+        this.profesor = profesor;
+        this.capacidad = capacidad;
+
+        estudiantes = new Estudiante[MAX_ESTUDIANTES_CURSO];
+
+        profesor.setCurso(this);
+    }
+
+    @Override
+    public void matricularEstudiante(Estudiante estudiante) {
+
+        for (int i = 0; i < estudiantes.length; i++) {
+
+            if (estudiantes[i] == null) {
+                estudiantes[i] = estudiante;
+                estudiante.setCurso(this);
+
+                System.out.println("Estudiante matriculado correctamente.");
+                return;
+            }
+        }
+
+        System.out.println("El curso está lleno.");
+    }
+
+    @Override
+    public int cantidadEstudiantes() {
+
+        int cantidad = 0;
+
+        for (int i = 0; i < estudiantes.length; i++) {
+
+            if (estudiantes[i] != null) {
+                cantidad++;
+            }
+        }
+
+        return cantidad;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public Profesor getProfesor() {
+        return profesor;
+    }
+
+    public int getCapacidad() {
+        return capacidad;
+    }
+}
+
+
+/*
+ * CLASE SISTEMA DE GESTIÓN
+ */
+class SistemaGestion {
+
+    public static final int MAX_ESTUDIANTES = 10;
+    public static final int MAX_PROFESORES = 10;
+    public static final int MAX_CURSOS = 5;
+
+    private Estudiante[] estudiantes;
+    private Profesor[] profesores;
+    private Curso[] cursos;
+
+    private int cantidadEstudiantes;
+    private int cantidadProfesores;
+
+    public SistemaGestion() {
+
+        estudiantes = new Estudiante[MAX_ESTUDIANTES];
+        profesores = new Profesor[MAX_PROFESORES];
+
+        /*
+         * PROFESORES BASE
+         */
+        Profesor profesor1 =
+                new Profesor("Carlos Gómez", "10000001", "Matemáticas");
+
+        Profesor profesor2 =
+                new Profesor("Ana Torres", "10000002", "Programación");
+
+        Profesor profesor3 =
+                new Profesor("Luis Pérez", "10000003", "Física");
+
+        Profesor profesor4 =
+                new Profesor("María Díaz", "10000004", "Base de Datos");
+
+        Profesor profesor5 =
+                new Profesor("Pedro Flores", "10000005", "Redes");
+
+        /*
+         * CURSOS BASE
+         */
+        cursos = new Curso[MAX_CURSOS];
+
+        cursos[0] =
+                new Curso("C01", "Cálculo", profesor1, 5);
+
+        cursos[1] =
+                new Curso("C02", "Programación", profesor2, 5);
+
+        cursos[2] =
+                new Curso("C03", "Física", profesor3, 5);
+
+        cursos[3] =
+                new Curso("C04", "Bases de Datos", profesor4, 5);
+
+        cursos[4] =
+                new Curso("C05", "Redes", profesor5, 5);
+    }
+
+
+    /*
+     * REGISTRAR ESTUDIANTE
+     */
+    public void registrarEstudiante(Scanner scanner) {
+
+        if (cantidadEstudiantes >= MAX_ESTUDIANTES) {
+
+            System.out.println("No se pueden registrar más estudiantes.");
+            return;
+        }
+
+        System.out.println("\n===== REGISTRAR ESTUDIANTE =====");
+
+        System.out.print("Ingrese nombre: ");
+        String nombre = scanner.nextLine();
+
+        System.out.print("Ingrese DNI: ");
+        String dni = scanner.nextLine();
+
+        System.out.print("Ingrese código de estudiante: ");
+        String codigo = scanner.nextLine();
+
+        estudiantes[cantidadEstudiantes] =
+                new Estudiante(nombre, dni, codigo);
+
+        cantidadEstudiantes++;
+
+        System.out.println("Estudiante registrado correctamente.");
+    }
+
+
+    /*
+     * REGISTRAR PROFESOR
+     */
+    public void registrarProfesor(Scanner scanner) {
+
+        if (cantidadProfesores >= MAX_PROFESORES) {
+
+            System.out.println("No se pueden registrar más profesores.");
+            return;
+        }
+
+        System.out.println("\n===== REGISTRAR PROFESOR =====");
+
+        System.out.print("Ingrese nombre: ");
+        String nombre = scanner.nextLine();
+
+        System.out.print("Ingrese DNI: ");
+        String dni = scanner.nextLine();
+
+        System.out.print("Ingrese especialidad: ");
+        String especialidad = scanner.nextLine();
+
+        System.out.println("\nCursos disponibles:");
+
+        for (int i = 0; i < cursos.length; i++) {
+
+            System.out.println(
+                    (i + 1) + ". " + cursos[i].getNombre()
+            );
+        }
+
+        System.out.print("Seleccione el curso que dicta: ");
+        int opcion = scanner.nextInt();
+        scanner.nextLine();
+
+        Profesor profesor =
+                new Profesor(nombre, dni, especialidad);
+
+        profesores[cantidadProfesores] = profesor;
+        cantidadProfesores++;
+
+        /*
+         * Se asigna el curso al profesor.
+         */
+        profesor.setCurso(cursos[opcion - 1]);
+
+        System.out.println("\nProfesor registrado correctamente.");
+        System.out.println("Profesor: " + profesor.getNombre());
+        System.out.println(
+                "Curso que dicta: " +
+                cursos[opcion - 1].getNombre()
+        );
+    }
+
+
+    /*
+     * MATRICULAR ESTUDIANTE
+     */
+    public void matricularEstudiante(Scanner scanner) {
+
+        System.out.println("\n===== MATRICULAR ESTUDIANTE =====");
+
+        System.out.print("Ingrese código del estudiante: ");
+        String codigo = scanner.nextLine();
+
+        Estudiante estudiante = buscarEstudiante(codigo);
+
+        if (estudiante == null) {
+
+            System.out.println("Estudiante no encontrado.");
+            return;
+        }
+
+        System.out.println("\nCursos disponibles:");
+
+        for (int i = 0; i < cursos.length; i++) {
+
+            System.out.println(
+                    (i + 1) + ". " +
+                    cursos[i].getNombre() +
+                    " - Profesor: " +
+                    cursos[i].getProfesor().getNombre()
+            );
+        }
+
+        System.out.print("Seleccione un curso: ");
+        int opcion = scanner.nextInt();
+        scanner.nextLine();
+
+        Curso curso = cursos[opcion - 1];
+
+        curso.matricularEstudiante(estudiante);
+    }
+
+
+    /*
+     * BUSCAR ESTUDIANTE
+     */
+    private Estudiante buscarEstudiante(String codigo) {
+
+        for (int i = 0; i < cantidadEstudiantes; i++) {
+
+            if (estudiantes[i].getCodigo().equals(codigo)) {
+                return estudiantes[i];
+            }
+        }
+
+        return null;
+    }
+
+
+    /*
+     * MOSTRAR CURSOS
+     */
+    public void mostrarCursos() {
+
+        System.out.println("\n===== CURSOS =====");
+
+        for (int i = 0; i < cursos.length; i++) {
+
+            System.out.println("\nCódigo: " + cursos[i].getCodigo());
+            System.out.println("Curso: " + cursos[i].getNombre());
+            System.out.println(
+                    "Profesor: " +
+                    cursos[i].getProfesor().getNombre()
+            );
+            System.out.println(
+                    "Capacidad: " +
+                    cursos[i].getCapacidad() +
+                    " estudiantes"
+            );
+        }
+    }
+
+
+    /*
+     * MOSTRAR CURSOS CON ESTUDIANTES
+     */
+    public void mostrarCursosConEstudiantes() {
+
+        System.out.println(
+                "\n===== ESTUDIANTES POR CURSO ====="
+        );
+
+        for (int i = 0; i < cursos.length; i++) {
+
+            System.out.println("\nCurso: " + cursos[i].getNombre());
+
+            System.out.println(
+                    "Profesor: " +
+                    cursos[i].getProfesor().getNombre()
+            );
+
+            System.out.println(
+                    "Estudiantes matriculados: " +
+                    cursos[i].cantidadEstudiantes()
+            );
+        }
+	}
+}
