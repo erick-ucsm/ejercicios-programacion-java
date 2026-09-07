@@ -1,0 +1,40 @@
+package laboratorio3;
+
+public class ejercicio3 {
+
+    public static void main(String[] args) {
+
+        Vehiculo coche = new Coche();
+        Vehiculo bicicleta = new Bicicleta();
+
+        coche.acelerar();
+        bicicleta.acelerar();
+    }
+}
+
+
+// Clase base
+abstract class Vehiculo {
+
+    public abstract void acelerar();
+}
+
+
+// Coche
+class Coche extends Vehiculo {
+
+    @Override
+    public void acelerar() {
+        System.out.println("El coche acelera usando el motor");
+    }
+}
+
+
+// Bicicleta
+class Bicicleta extends Vehiculo {
+
+    @Override
+    public void acelerar() {
+        System.out.println("La bicicleta acelera pedaleando");
+    }
+}
