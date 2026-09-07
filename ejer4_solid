@@ -1,0 +1,55 @@
+package laboratorio3;
+
+public class ejercicio4 {
+
+    public static void main(String[] args) {
+
+        Impresora impresora = new Impresora();
+
+        impresora.imprimir();
+
+        ImpresoraMultifuncional multifuncional = new ImpresoraMultifuncional();
+
+        multifuncional.imprimir();
+        multifuncional.escanear();
+    }
+}
+
+
+// Interfaz específica para imprimir
+interface Imprimible {
+
+    void imprimir();
+}
+
+
+// Interfaz específica para escanear
+interface Escaneable {
+
+    void escanear();
+}
+
+
+// Impresora normal
+class Impresora implements Imprimible {
+
+    @Override
+    public void imprimir() {
+        System.out.println("La impresora está imprimiendo");
+    }
+}
+
+
+// Impresora multifuncional
+class ImpresoraMultifuncional implements Imprimible, Escaneable {
+
+    @Override
+    public void imprimir() {
+        System.out.println("La impresora multifuncional está imprimiendo");
+    }
+
+    @Override
+    public void escanear() {
+        System.out.println("La impresora multifuncional está escaneando");
+    }
+}
