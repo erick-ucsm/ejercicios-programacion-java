@@ -1,0 +1,146 @@
+package laboratorio4;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+
+
+// Excepción de vocal
+class ExcepcionVocal extends Exception {
+
+    public ExcepcionVocal(String mensaje) {
+        super(mensaje);
+    }
+}
+
+
+// Excepción de número
+class ExcepcionNumero extends Exception {
+
+    public ExcepcionNumero(String mensaje) {
+        super(mensaje);
+    }
+}
+
+
+// Excepción de blanco
+class ExcepcionBlanco extends Exception {
+
+    public ExcepcionBlanco(String mensaje) {
+        super(mensaje);
+    }
+}
+
+
+// Excepción de salida
+class ExcepcionSalida extends Exception {
+
+    public ExcepcionSalida(String mensaje) {
+        super(mensaje);
+    }
+}
+
+
+// Clase proporcionada por el ejercicio
+class LeerEntrada {
+
+    private Reader stream;
+
+    public LeerEntrada(InputStream Fuente) {
+        stream = new InputStreamReader(Fuente);
+    }
+
+    public char getChar() throws IOException {
+        return (char) this.stream.read();
+    }
+}
+
+
+// Clase principal
+public class ejercicio1 {
+
+    private LeerEntrada entrada;
+
+    public ejercicio1() {
+        entrada = new LeerEntrada(System.in);
+    }
+
+    public void procesar()
+            throws IOException, ExcepcionVocal, ExcepcionNumero,
+            ExcepcionBlanco, ExcepcionSalida {
+
+        char caracter = entrada.getChar();
+
+        // Carácter de salida
+        if (caracter == 'x') {
+            throw new ExcepcionSalida("Se ingresó el carácter de salida.");
+        }
+
+        // Espacio en blanco
+        if (caracter == ' ') {
+            throw new ExcepcionBlanco("Se ingresó un espacio en blanco.");
+        }
+
+        // Número
+        if (Character.isDigit(caracter)) {
+            throw new ExcepcionNumero("Se ingresó un número.");
+        }
+
+        // Vocal
+        if (Character.isLetter(caracter)) {
+
+            char minuscula = Character.toLowerCase(caracter);
+
+            if (minuscula == 'a' || minuscula == 'e' ||
+                minuscula == 'i' || minuscula == 'o' ||
+                minuscula == 'u') {
+
+                throw new ExcepcionVocal("Se ingresó una vocal.");
+            }
+        }
+    }
+
+
+    public static void main(String[] args) {
+
+        ejercicio1 programa = new ejercicio1();
+
+        boolean continuar = true;
+
+        System.out.println("Ingrese caracteres.");
+        System.out.println("Ingrese 'x' para salir.");
+
+        while (continuar) {
+
+            try {
+
+                programa.procesar();
+
+            } catch (ExcepcionVocal e) {
+
+                System.out.println("Excepción de vocal: " + e.getMessage());
+
+            } catch (ExcepcionNumero e) {
+
+                System.out.println("Excepción de número: " + e.getMessage());
+
+            } catch (ExcepcionBlanco e) {
+
+                System.out.println("Excepción de blanco: " + e.getMessage());
+
+            } catch (ExcepcionSalida e) {
+
+                System.out.println("Excepción de salida: " + e.getMessage());
+                continuar = false;
+
+            } catch (IOException e) {
+
+                System.out.println("Error al leer el teclado.");
+                continuar = false;
+            }
+        }
+
+        System.out.println("Programa finalizado.");
+    }
+}
