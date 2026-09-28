@@ -1,0 +1,66 @@
+package laboratorio5;
+
+public class ejercicio2 {
+
+    // Clase genérica Par con método esIgual
+    public static class Par<F, S> {
+        private F primero;
+        private S segundo;
+
+        public Par(F primero, S segundo) {
+            this.primero = primero;
+            this.segundo = segundo;
+        }
+
+        public F getPrimero() {
+            return primero;
+        }
+
+        public S getSegundo() {
+            return segundo;
+        }
+
+        public void setPrimero(F primero) {
+            this.primero = primero;
+        }
+
+        public void setSegundo(S segundo) {
+            this.segundo = segundo;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("(Primero: %s, Segundo: %s)", primero, segundo);
+        }
+
+        // Método esIgual que compara dos pares
+        public boolean esIgual(Par<F, S> otroPar) {
+            if (otroPar == null) {
+                return false;
+            }
+            boolean primeroIgual = (this.primero == null)
+                    ? (otroPar.primero == null)
+                    : this.primero.equals(otroPar.primero);
+
+            boolean segundoIgual = (this.segundo == null)
+                    ? (otroPar.segundo == null)
+                    : this.segundo.equals(otroPar.segundo);
+
+            return primeroIgual && segundoIgual;
+        }
+    }
+
+    public static void main(String[] args) {
+        Par<String, Integer> par1 = new Par<>("Hola", 10);
+        Par<String, Integer> par2 = new Par<>("Hola", 10);
+        Par<String, Integer> par3 = new Par<>("Mundo", 20);
+
+        System.out.println("Par 1: " + par1);
+        System.out.println("Par 2: " + par2);
+        System.out.println("Par 3: " + par3);
+
+        System.out.println("¿Par 1 es igual a Par 2? " + par1.esIgual(par2)); // true
+        System.out.println("¿Par 1 es igual a Par 3? " + par1.esIgual(par3)); // false
+        System.out.println("¿Par 1 es igual a null? " + par1.esIgual(null));  // false
+    }
+}
