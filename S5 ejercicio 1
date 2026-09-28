@@ -1,0 +1,56 @@
+package laboratorio5;
+
+public class ejercicio1 {
+
+    // Clase genérica Par como clase anidada estática
+    public static class Par<F, S> {
+        private F primero;
+        private S segundo;
+
+        // Constructor
+        public Par(F primero, S segundo) {
+            this.primero = primero;
+            this.segundo = segundo;
+        }
+
+        // Métodos get
+        public F getPrimero() {
+            return primero;
+        }
+
+        public S getSegundo() {
+            return segundo;
+        }
+
+        // Métodos set
+        public void setPrimero(F primero) {
+            this.primero = primero;
+        }
+
+        public void setSegundo(S segundo) {
+            this.segundo = segundo;
+        }
+
+        // Método toString
+        @Override
+        public String toString() {
+            return String.format("(Primero: %s, Segundo: %s)", primero, segundo);
+        }
+    }
+
+    // Método main para probar la clase Par
+    public static void main(String[] args) {
+        Par<String, Integer> par1 = new Par<>("Edad", 25);
+        System.out.println("Par 1: " + par1);
+
+        Par<Double, Boolean> par2 = new Par<>(3.14, true);
+        System.out.println("Par 2: " + par2);
+
+        par1.setPrimero("Años");
+        par1.setSegundo(30);
+        System.out.println("Par 1 modificado: " + par1);
+
+        System.out.println("Primero de par2: " + par2.getPrimero());
+        System.out.println("Segundo de par2: " + par2.getSegundo());
+    }
+}
