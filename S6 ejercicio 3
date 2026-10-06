@@ -1,0 +1,650 @@
+package laboratorio6;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class ejercicio3 {
+
+    // ==================== MODELO: Item ====================
+    static class Item {
+        private String nombre;
+        private int cantidad;
+        private String tipo;          // "Arma" o "Poción"
+        private String descripcion;
+        private int poder;            // daño o curación
+        private double precio;        // precio en tienda
+
+        public Item(String nombre, int cantidad, String tipo, String descripcion, int poder, double precio) {
+            this.nombre = nombre;
+            this.cantidad = cantidad;
+            this.tipo = tipo;
+            this.descripcion = descripcion;
+            this.poder = poder;
+            this.precio = precio;
+        }
+        public String getNombre() { return nombre; }
+        public int getCantidad() { return cantidad; }
+        public String getTipo() { return tipo; }
+        public String getDescripcion() { return descripcion; }
+        public int getPoder() { return poder; }
+        public double getPrecio() { return precio; }
+
+        public void setCantidad(int cantidad) { this.cantidad = cantidad; }
+        public void usarItem() { if (cantidad > 0) cantidad--; }
+
+        @Override
+        public String toString() {
+            return nombre + " [" + tipo + "] x" + cantidad
+                    + " (Poder: " + poder + " | Precio: S/ " + String.format("%.2f", precio) + ")";
+        }
+    }
+
+    // ==================== MODELO: Jugador ====================
+    static class Jugador {
+        private String nombre;
+        private int salud, saludMax, nivel;
+        private double oro;
+        private List<Item> inventario;
+        private Item itemEquipado;
+
+        public Jugador(String nombre, int salud, int nivel, double oro) {
+            this.nombre = nombre;
+            this.salud = salud;
+            this.saludMax = salud;
+            this.nivel = nivel;
+            this.oro = oro;
+            this.inventario = new ArrayList<>();
+            this.itemEquipado = null;
+        }
+        public String getNombre() { return nombre; }
+        public int getSalud() { return salud; }
+        public int getSaludMax() { return saludMax; }
+        public int getNivel() { return nivel; }
+        public double getOro() { return oro; }
+        public List<Item> getInventario() { return inventario; }
+        public Item getItemEquipado() { return itemEquipado; }
+
+        public void setNivel(int nivel) { this.nivel = nivel; }
+        public void subirNivel() {
+            this.nivel++;
+            this.saludMax += 20;
+            this.salud = this.saludMax; // se cura al subir de nivel
+        }
+        public void setOro(double oro) { this.oro = oro; }
+        public void agregarOro(double monto) { this.oro += monto; }
+        public void gastarOro(double monto) { this.oro -= monto; }
+
+        public boolean estaVivo() { return salud > 0; }
+
+        public void agregarItem(Item item) {
+            // Si ya existe un item con el mismo nombre, incrementa cantidad
+            for (Item i : inventario) {
+                if (i.getNombre().equalsIgnoreCase(item.getNombre())) {
+                    i.setCantidad(i.getCantidad() + item.getCantidad());
+                    return;
+                }
+            }
+            inventario.add(item);
+        }
+
+        public void equiparItem(Item item) {
+            if (item != null && "Arma".equalsIgnoreCase(item.getTipo()))
+                this.itemEquipado = item;
+        }
+
+        public int atacar() {
+            return (itemEquipado != null) ? itemEquipado.getPoder() : 5;
+        }
+
+        public int usarObjeto(Item item) {
+            if (item == null) return 0;
+            if ("Poción".equalsIgnoreCase(item.getTipo()) && item.getCantidad() > 0) {
+                int antes = this.salud;
+                this.salud = Math.min(salud + item.getPoder(), saludMax);
+                item.usarItem();
+                return this.salud - antes;
+            }
+            return 0;
+        }
+
+        public void recibirDano(int dano) {
+            this.salud = Math.max(0, salud - dano);
+        }
+
+        // Cuenta cuántos ítems de un tipo tiene (sumando cantidades)
+        public int contarPorTipo(String tipo) {
+            int c = 0;
+            for (Item i : inventario)
+                if (i.getTipo().equalsIgnoreCase(tipo)) c += i.getCantidad();
+            return c;
+        }
+
+        // Cuenta cuántos ítems con un nombre específico tiene
+        public int contarPorNombre(String nombre) {
+            for (Item i : inventario)
+                if (i.getNombre().equalsIgnoreCase(nombre)) return i.getCantidad();
+            return 0;
+        }
+    }
+
+    // ==================== MODELO: Enemigo ====================
+    static class Enemigo {
+        private String nombre;
+        private int salud, saludMax, nivel, danoBase;
+        private String tipo;
+        private double recompensaOro;
+
+        public Enemigo(String nombre, int salud, int nivel, String tipo, int danoBase, double recompensaOro) {
+            this.nombre = nombre;
+            this.salud = salud;
+            this.saludMax = salud;
+            this.nivel = nivel;
+            this.tipo = tipo;
+            this.danoBase = danoBase;
+            this.recompensaOro = recompensaOro;
+        }
+        public String getNombre() { return nombre; }
+        public int getSalud() { return salud; }
+        public int getSaludMax() { return saludMax; }
+        public int getNivel() { return nivel; }
+        public String getTipo() { return tipo; }
+        public double getRecompensaOro() { return recompensaOro; }
+
+        public boolean estaVivo() { return salud > 0; }
+        public int atacar() { return danoBase + (int)(Math.random() * 6); }
+        public void recibirDano(int d) { this.salud = Math.max(0, salud - d); }
+
+        @Override
+        public String toString() {
+            return nombre + " [" + tipo + "] Nv." + nivel + " - HP: " + salud + "/" + saludMax;
+        }
+    }
+
+    // ==================== MODELO: TiendaModelo ====================
+    static class TiendaModelo {
+        private List<Item> catalogo;
+
+        public TiendaModelo() {
+            catalogo = new ArrayList<>();
+            catalogo.add(new Item("Espada Básica", 1, "Arma", "Espada de acero común", 15, 100));
+            catalogo.add(new Item("Hacha de Guerra", 1, "Arma", "Hacha pesada", 25, 250));
+            catalogo.add(new Item("Espada Larga", 1, "Arma", "Espada de caballero", 35, 500));
+            catalogo.add(new Item("Poción de Vida", 1, "Poción", "Restaura 50 HP", 50, 30));
+            catalogo.add(new Item("Poción de Maná", 1, "Poción", "Restaura 30 MP", 30, 25));
+        }
+
+        public List<Item> getCatalogo() { return catalogo; }
+        public Item getItem(int indice) {
+            if (indice < 1 || indice > catalogo.size()) return null;
+            return catalogo.get(indice - 1);
+        }
+    }
+
+    // ==================== MODELO: CombateModelo ====================
+    static class CombateModelo {
+        private Jugador jugador;
+        private List<Enemigo> enemigos;
+        private int enemigoActual;
+
+        public CombateModelo(Jugador jugador) {
+            this.jugador = jugador;
+            this.enemigos = new ArrayList<>();
+            this.enemigoActual = 0;
+            // 5 monstruos + Rey Demonio final
+            enemigos.add(new Enemigo("Goblin", 30, 1, "Humanoide", 6, 50));
+            enemigos.add(new Enemigo("Orco", 55, 2, "Humanoide", 10, 100));
+            enemigos.add(new Enemigo("Troll", 80, 3, "Bestia", 14, 180));
+            enemigos.add(new Enemigo("Vampiro", 110, 4, "No-Muerto", 18, 280));
+            enemigos.add(new Enemigo("Dragón", 150, 5, "Bestia", 22, 400));
+            enemigos.add(new Enemigo("Rey Demonio", 250, 10, "Demonio", 30, 1000));
+        }
+
+        public Jugador getJugador() { return jugador; }
+        public List<Enemigo> getEnemigos() { return enemigos; }
+        public Enemigo getEnemigoActual() {
+            return (enemigoActual < enemigos.size()) ? enemigos.get(enemigoActual) : null;
+        }
+        public int getIndiceActual() { return enemigoActual; }
+        public int getTotalEnemigos() { return enemigos.size(); }
+
+        public boolean combateTerminado() {
+            return !jugador.estaVivo() || enemigoActual >= enemigos.size();
+        }
+
+        public boolean esReyDemonio() {
+            Enemigo e = getEnemigoActual();
+            return e != null && e.getNombre().equalsIgnoreCase("Rey Demonio");
+        }
+
+        public String turnoJugador() {
+            Enemigo e = getEnemigoActual();
+            if (e == null || !e.estaVivo()) return "No hay enemigo al que atacar.";
+            int dano = jugador.atacar();
+            e.recibirDano(dano);
+            StringBuilder sb = new StringBuilder();
+            sb.append("⚔ ").append(jugador.getNombre()).append(" ataca a ")
+              .append(e.getNombre()).append(" causando ").append(dano).append(" de daño.");
+            if (!e.estaVivo()) {
+                sb.append("\n✔ ¡").append(e.getNombre()).append(" derrotado!");
+                jugador.agregarOro(e.getRecompensaOro());
+                sb.append("\n💰 Ganas S/ ").append(String.format("%.2f", e.getRecompensaOro())).append(" de oro.");
+                enemigoActual++;
+                if (enemigoActual < enemigos.size()) {
+                    jugador.subirNivel();
+                    sb.append("\n⬆ ¡Subes al nivel ").append(jugador.getNivel())
+                      .append("! HP restaurado a ").append(jugador.getSalud()).append(".");
+                    sb.append("\n¡Aparece ").append(enemigos.get(enemigoActual).getNombre()).append("!");
+                }
+            }
+            return sb.toString();
+        }
+
+        public String turnoEnemigo() {
+            Enemigo e = getEnemigoActual();
+            if (e == null || !e.estaVivo()) return "";
+            int dano = e.atacar();
+            jugador.recibirDano(dano);
+            String s = "💥 " + e.getNombre() + " ataca a " + jugador.getNombre()
+                     + " causando " + dano + " de daño.";
+            if (!jugador.estaVivo())
+                s += "\n✘ ¡" + jugador.getNombre() + " ha caído en combate!";
+            return s;
+        }
+
+        public String usarObjetoJugador(Item item) {
+            if (item == null) return "Ítem no válido.";
+            if (item.getCantidad() <= 0) return "No quedan unidades de " + item.getNombre();
+            int curado = jugador.usarObjeto(item);
+            return "🧪 " + jugador.getNombre() + " usa " + item.getNombre()
+                 + " y recupera " + curado + " HP.";
+        }
+    }
+
+    // ==================== VISTA: InventarioView ====================
+    static class InventarioView {
+        private Scanner scanner = new Scanner(System.in);
+        public String solicitarTexto(String m) { System.out.print(m); return scanner.nextLine(); }
+        public int solicitarEntero(String m) {
+            System.out.print(m);
+            try { return Integer.parseInt(scanner.nextLine()); }
+            catch (NumberFormatException e) { return -1; }
+        }
+        public void mostrarMensaje(String m) { System.out.println(m); }
+
+        // Muestra inventario del jugador con números
+        public void mostrarInventarioNumerado(List<Item> items) {
+            if (items.isEmpty()) { System.out.println("Inventario vacío."); return; }
+            System.out.println("\n--- INVENTARIO DEL JUGADOR ---");
+            for (int i = 0; i < items.size(); i++)
+                System.out.println((i + 1) + ". " + items.get(i));
+        }
+
+        // Filtra por tipo (Arma o Poción) y muestra numerado
+        public List<Item> filtrarPorTipo(List<Item> items, String tipo) {
+            List<Item> filtrados = new ArrayList<>();
+            for (Item i : items)
+                if (i.getTipo().equalsIgnoreCase(tipo) && i.getCantidad() > 0)
+                    filtrados.add(i);
+            return filtrados;
+        }
+
+        public void mostrarDetalleItem(Item item) {
+            if (item == null) { System.out.println("Ítem no encontrado."); return; }
+            System.out.println("\n--- DETALLE ---");
+            System.out.println("Nombre:      " + item.getNombre());
+            System.out.println("Tipo:        " + item.getTipo());
+            System.out.println("Cantidad:    " + item.getCantidad());
+            System.out.println("Poder:       " + item.getPoder());
+            System.out.println("Precio:      S/ " + String.format("%.2f", item.getPrecio()));
+            System.out.println("Descripción: " + item.getDescripcion());
+        }
+
+        public void cerrar() { scanner.close(); }
+    }
+
+    // ==================== VISTA: TiendaView ====================
+    static class TiendaView {
+        private Scanner scanner = new Scanner(System.in);
+        public void mostrarCatalogo(List<Item> catalogo) {
+            System.out.println("\n========= TIENDA =========");
+            for (int i = 0; i < catalogo.size(); i++) {
+                Item it = catalogo.get(i);
+                System.out.println((i + 1) + ". " + it.getNombre() + " [" + it.getTipo() + "]"
+                        + " - S/ " + String.format("%.2f", it.getPrecio())
+                        + " (" + it.getDescripcion() + ")");
+            }
+            System.out.println((catalogo.size() + 1) + ". Volver al menú");
+            System.out.println("==========================");
+        }
+        public int solicitarEntero(String m) {
+            System.out.print(m);
+            try { return Integer.parseInt(scanner.nextLine()); }
+            catch (NumberFormatException e) { return -1; }
+        }
+        public String solicitarTexto(String m) { System.out.print(m); return scanner.nextLine(); }
+        public void mostrarMensaje(String m) { System.out.println(m); }
+        public void cerrar() { scanner.close(); }
+    }
+
+    // ==================== VISTA: CombateView ====================
+    static class CombateView {
+        private Scanner scanner = new Scanner(System.in);
+
+        public void mostrarEstado(Jugador j, Enemigo e, int indice, int total) {
+            System.out.println("\n===== ESTADO DEL COMBATE =====");
+            System.out.println("Jugador: " + j.getNombre() + " (Nv." + j.getNivel() + ") HP: "
+                    + j.getSalud() + "/" + j.getSaludMax()
+                    + " | Oro: S/ " + String.format("%.2f", j.getOro())
+                    + (j.getItemEquipado() != null ? " | Arma: " + j.getItemEquipado().getNombre() : ""));
+            System.out.println("Enemigo " + (indice + 1) + "/" + total + ": " + e);
+            System.out.println("==============================");
+        }
+
+        public void mostrarMenuCombate() {
+            System.out.println("\n--- ACCIONES ---");
+            System.out.println("1. Atacar");
+            System.out.println("2. Usar poción");
+            System.out.println("3. Cambiar arma");
+            System.out.println("4. Huir");
+            System.out.print("Opción: ");
+        }
+
+        public String solicitarOpcion() { return scanner.nextLine(); }
+        public String solicitarTexto(String m) { System.out.print(m); return scanner.nextLine(); }
+        public int solicitarEntero(String m) {
+            System.out.print(m);
+            try { return Integer.parseInt(scanner.nextLine()); }
+            catch (NumberFormatException e) { return -1; }
+        }
+        public void mostrarMensaje(String m) { System.out.println(m); }
+        public void cerrar() { scanner.close(); }
+    }
+
+    // ==================== CONTROLADOR: TiendaController ====================
+    static class TiendaController {
+        private TiendaModelo modelo;
+        private TiendaView vista;
+        private Jugador jugador;
+
+        public TiendaController(TiendaModelo m, TiendaView v, Jugador j) {
+            this.modelo = m; this.vista = v; this.jugador = j;
+        }
+
+        public void abrirTienda() {
+            String op;
+            do {
+                vista.mostrarMensaje("\n💰 Oro disponible: S/ " + String.format("%.2f", jugador.getOro()));
+                vista.mostrarCatalogo(modelo.getCatalogo());
+                int opcion = vista.solicitarEntero("Seleccione un ítem para comprar: ");
+
+                if (opcion == modelo.getCatalogo().size() + 1 || opcion == -1) break;
+
+                Item item = modelo.getItem(opcion);
+                if (item == null) { vista.mostrarMensaje("Opción inválida."); continue; }
+
+                // Validaciones
+                if ("Arma".equalsIgnoreCase(item.getTipo())) {
+                    if (jugador.contarPorNombre(item.getNombre()) >= 1) {
+                        vista.mostrarMensaje("Ya tienes un/a " + item.getNombre() + " (solo 1 permitido).");
+                        continue;
+                    }
+                } else if ("Poción".equalsIgnoreCase(item.getTipo())) {
+                    if (jugador.contarPorNombre(item.getNombre()) >= 10) {
+                        vista.mostrarMensaje("Límite alcanzado: 10 " + item.getNombre() + " máximo.");
+                        continue;
+                    }
+                }
+
+                if (jugador.getOro() < item.getPrecio()) {
+                    vista.mostrarMensaje("✘ Oro insuficiente. Necesitas S/ "
+                            + String.format("%.2f", item.getPrecio()));
+                    continue;
+                }
+
+                // Compra
+                jugador.gastarOro(item.getPrecio());
+                jugador.agregarItem(new Item(item.getNombre(), 1, item.getTipo(),
+                        item.getDescripcion(), item.getPoder(), item.getPrecio()));
+                vista.mostrarMensaje("Has comprado: " + item.getNombre());
+
+                // Autoequipar si es arma y no tiene ninguna
+                if ("Arma".equalsIgnoreCase(item.getTipo()) && jugador.getItemEquipado() == null) {
+                    for (Item i : jugador.getInventario())
+                        if (i.getNombre().equalsIgnoreCase(item.getNombre())) {
+                            jugador.equiparItem(i);
+                            vista.mostrarMensaje("Arma equipada automáticamente.");
+                            break;
+                        }
+                }
+
+            } while (true);
+        }
+    }
+
+    // ==================== CONTROLADOR: InventarioController ====================
+    static class InventarioController {
+        private InventarioView vista;
+        private Jugador jugador;
+
+        public InventarioController(InventarioView v, Jugador j) {
+            this.vista = v; this.jugador = j;
+        }
+
+        public void menuInventario() {
+            String op;
+            do {
+                System.out.println("\n========= INVENTARIO DEL JUGADOR =========");
+                System.out.println("1. Mostrar inventario");
+                System.out.println("2. Buscar ítem (ver detalle)");
+                System.out.println("3. Volver al menú principal");
+                System.out.println("==========================================");
+                op = vista.solicitarTexto("Opción: ");
+                switch (op) {
+                    case "1":
+                        vista.mostrarInventarioNumerado(jugador.getInventario());
+                        break;
+                    case "2":
+                        buscarItem();
+                        break;
+                    case "3":
+                        break;
+                    default:
+                        vista.mostrarMensaje("Opción inválida.");
+                }
+            } while (!op.equals("3"));
+        }
+
+        // Buscar ítem: muestra todos los ítems del jugador y permite seleccionar uno por número
+        private void buscarItem() {
+            List<Item> items = jugador.getInventario();
+            if (items.isEmpty()) {
+                vista.mostrarMensaje("No tienes ítems en el inventario.");
+                return;
+            }
+            vista.mostrarInventarioNumerado(items);
+            int op = vista.solicitarEntero("Seleccione el número del ítem para ver detalle: ");
+            if (op >= 1 && op <= items.size()) {
+                vista.mostrarDetalleItem(items.get(op - 1));
+            } else {
+                vista.mostrarMensaje("Número inválido.");
+            }
+        }
+    }
+
+    // ==================== CONTROLADOR: CombateController ====================
+    static class CombateController {
+        private CombateModelo modelo;
+        private CombateView vista;
+
+        public CombateController(CombateModelo m, CombateView v) {
+            this.modelo = m; this.vista = v;
+        }
+
+        // Retorna true si el juego terminó completamente (Rey Demonio derrotado o jugador muerto)
+        public boolean iniciar() {
+            System.out.println("COMIENZA EL COMBATE");
+            String opcion;
+            do {
+                if (modelo.combateTerminado()) break;
+                vista.mostrarEstado(modelo.getJugador(), modelo.getEnemigoActual(),
+                        modelo.getIndiceActual(), modelo.getTotalEnemigos());
+                vista.mostrarMenuCombate();
+                opcion = vista.solicitarOpcion();
+
+                switch (opcion) {
+                    case "1":
+                        vista.mostrarMensaje(modelo.turnoJugador());
+                        if (!modelo.combateTerminado()) {
+                            vista.mostrarMensaje(modelo.turnoEnemigo());
+                        }
+                        break;
+                    case "2":
+                        usarPocion();
+                        if (!modelo.combateTerminado()) {
+                            vista.mostrarMensaje(modelo.turnoEnemigo());
+                        }
+                        break;
+                    case "3":
+                        cambiarArma();
+                        break;
+                    case "4":
+                        vista.mostrarMensaje("Has huido del combate.");
+                        return false;
+                    default:
+                        vista.mostrarMensaje("Opción inválida.");
+                }
+            } while (!opcion.equals("4"));
+
+            // Resultado final
+            System.out.println("\n===== RESULTADO FINAL =====");
+            if (!modelo.getJugador().estaVivo()) {
+                System.out.println("☠ DERROTA. El jugador ha caído en combate.");
+                return true;
+            }
+
+            // Si llegó al final y ya no hay más enemigos
+            if (modelo.getEnemigoActual() == null) {
+                System.out.println("FELICIDADES! HAS DERROTADO AL REY DEMONIO");
+                System.out.println("TERMINASTE EL JUEGO");
+                return true;
+            }
+            return false;
+        }
+
+        // Cambiar arma: lista las armas del inventario y elige por número
+        private void cambiarArma() {
+            List<Item> armas = new ArrayList<>();
+            for (Item i : modelo.getJugador().getInventario())
+                if ("Arma".equalsIgnoreCase(i.getTipo()) && i.getCantidad() > 0)
+                    armas.add(i);
+
+            if (armas.isEmpty()) {
+                vista.mostrarMensaje("No tienes armas en el inventario.");
+                return;
+            }
+
+            System.out.println("\n--- ARMAS DISPONIBLES ---");
+            for (int i = 0; i < armas.size(); i++)
+                System.out.println((i + 1) + ". " + armas.get(i));
+            int op = vista.solicitarEntero("Seleccione el arma a equipar: ");
+            if (op >= 1 && op <= armas.size()) {
+                modelo.getJugador().equiparItem(armas.get(op - 1));
+                vista.mostrarMensaje("Arma equipada: " + armas.get(op - 1).getNombre());
+            } else {
+                vista.mostrarMensaje("Número inválido.");
+            }
+        }
+
+        // Usar poción: lista las pociones del inventario y elige por número
+        private void usarPocion() {
+            List<Item> pociones = new ArrayList<>();
+            for (Item i : modelo.getJugador().getInventario())
+                if ("Poción".equalsIgnoreCase(i.getTipo()) && i.getCantidad() > 0)
+                    pociones.add(i);
+
+            if (pociones.isEmpty()) {
+                vista.mostrarMensaje("No tienes pociones en el inventario.");
+                return;
+            }
+
+            System.out.println("\n--- POCIONES DISPONIBLES ---");
+            for (int i = 0; i < pociones.size(); i++)
+                System.out.println((i + 1) + ". " + pociones.get(i));
+            int op = vista.solicitarEntero("Seleccione la poción a consumir: ");
+            if (op >= 1 && op <= pociones.size()) {
+                vista.mostrarMensaje(modelo.usarObjetoJugador(pociones.get(op - 1)));
+            } else {
+                vista.mostrarMensaje("Número inválido.");
+            }
+        }
+    }
+
+    // ==================== MAIN ====================
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        // 1. Crear jugador
+        Jugador jugador = new Jugador("Héroe", 100, 1, 300);
+        // Ítems iniciales
+        jugador.agregarItem(new Item("Espada Básica", 1, "Arma", "Espada de acero común", 15, 100));
+        jugador.agregarItem(new Item("Poción de Vida", 2, "Poción", "Restaura 50 HP", 50, 30));
+        jugador.equiparItem(jugador.getInventario().get(0));
+
+        // 2. Crear vistas
+        InventarioView inventarioView = new InventarioView();
+        TiendaView tiendaView = new TiendaView();
+        CombateView combateView = new CombateView();
+
+        // 3. Crear modelos auxiliares
+        TiendaModelo tiendaModelo = new TiendaModelo();
+
+        // 4. Crear controladores
+        InventarioController inventarioController = new InventarioController(inventarioView, jugador);
+        TiendaController tiendaController = new TiendaController(tiendaModelo, tiendaView, jugador);
+
+        // 5. Menú principal
+        boolean juegoTerminado = false;
+        String op;
+        do {
+            System.out.println("\n╔══════════════════════════════╗");
+            System.out.println("║   JUEGO MVC - MENÚ PRINCIPAL ║");
+            System.out.println("╠══════════════════════════════╣");
+            System.out.println("║ 1. Inventario                ║");
+            System.out.println("║ 2. Comprar ítems (Tienda)    ║");
+            System.out.println("║ 3. Iniciar Combate           ║");
+            System.out.println("║ 4. Salir                     ║");
+            System.out.println("╚══════════════════════════════╝");
+            System.out.print("Opción: ");
+            op = sc.nextLine();
+
+            switch (op) {
+                case "1":
+                    inventarioController.menuInventario();
+                    break;
+                case "2":
+                    tiendaController.abrirTienda();
+                    break;
+                case "3":
+                    // Cada vez que inicia combate, se crea un nuevo CombateModelo
+                    // para que empiece desde el primer enemigo (Nv.1)
+                    CombateModelo combateModelo = new CombateModelo(jugador);
+                    // Resetear nivel a 1 al iniciar una nueva partida de combate
+                    jugador.setNivel(1);
+                    CombateController combateController = new CombateController(combateModelo, combateView);
+                    juegoTerminado = combateController.iniciar();
+                    break;
+                case "4":
+                    System.out.println("Saliendo del juego...");
+                    juegoTerminado = true;
+                    break;
+                default:
+                    System.out.println("Opción inválida.");
+            }
+        } while (!juegoTerminado);
+
+        sc.close();
+        inventarioView.cerrar();
+        tiendaView.cerrar();
+        combateView.cerrar();
+    }
+}
