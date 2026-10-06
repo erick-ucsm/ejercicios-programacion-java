@@ -1,0 +1,378 @@
+package laboratorio6;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class ejercicio1 {
+
+    // ==================== MODELO: Producto ====================
+    static class Producto {
+        private String nombre;
+        private double precio;
+
+        public Producto(String nombre, double precio) {
+            this.nombre = nombre;
+            this.precio = precio;
+        }
+        public String getNombre() { return nombre; }
+        public double getPrecio() { return precio; }
+
+        @Override
+        public String toString() {
+            return nombre + " | S/ " + String.format("%.2f", precio);
+        }
+    }
+
+    // ==================== MODELO: ItemCarrito ====================
+    static class ItemCarrito {
+        private Producto producto;
+        private int cantidad;
+
+        public ItemCarrito(Producto producto, int cantidad) {
+            this.producto = producto;
+            this.cantidad = cantidad;
+        }
+        public Producto getProducto() { return producto; }
+        public int getCantidad() { return cantidad; }
+        public void setCantidad(int cantidad) { this.cantidad = cantidad; }
+        public double getSubtotal() { return producto.getPrecio() * cantidad; }
+
+        @Override
+        public String toString() {
+            return producto.getNombre() + " x" + cantidad +
+                   " = S/ " + String.format("%.2f", getSubtotal());
+        }
+    }
+
+    // ==================== MODELO: Compra (historial) ====================
+    static class Compra {
+        private List<ItemCarrito> items;
+        private double total, descuento, envio, totalFinal;
+
+        public Compra(List<ItemCarrito> items, double total, double descuento,
+                      double envio, double totalFinal) {
+            this.items = items;
+            this.total = total;
+            this.descuento = descuento;
+            this.envio = envio;
+            this.totalFinal = totalFinal;
+        }
+        public List<ItemCarrito> getItems() { return items; }
+        public double getTotal() { return total; }
+        public double getDescuento() { return descuento; }
+        public double getEnvio() { return envio; }
+        public double getTotalFinal() { return totalFinal; }
+    }
+
+    // ==================== MODELO: CarritoModelo ====================
+    static class CarritoModelo {
+        private List<Producto> productos;
+        private List<ItemCarrito> carrito;
+        private List<Compra> historial;
+
+        public CarritoModelo() {
+            productos = new ArrayList<>();
+            carrito = new ArrayList<>();
+            historial = new ArrayList<>();
+            cargarProductos();
+        }
+
+        private void cargarProductos() {
+            productos.add(new Producto("Laptop HP", 2500.00));
+            productos.add(new Producto("Mouse Logitech", 45.00));
+            productos.add(new Producto("Teclado Mecánico", 180.00));
+            productos.add(new Producto("Audífonos Sony", 320.00));
+            productos.add(new Producto("Monitor LG 24\"", 850.00));
+            productos.add(new Producto("Silla Gamer", 650.00));
+            productos.add(new Producto("Mochila Targus", 120.00));
+            productos.add(new Producto("Webcam Logitech", 210.00));
+        }
+
+        public List<Producto> getProductos() { return productos; }
+        public List<ItemCarrito> getCarrito() { return carrito; }
+        public List<Compra> getHistorial() { return historial; }
+
+        // Agregar producto nuevo a la lista general
+        public boolean agregarProducto(String nombre, double precio) {
+            if (nombre == null || nombre.trim().isEmpty() || precio <= 0) return false;
+            productos.add(new Producto(nombre.trim(), precio));
+            return true;
+        }
+
+        // Agregar producto al carrito por índice (1-based)
+        public boolean agregarAlCarritoPorIndice(int indice) {
+            if (indice < 1 || indice > productos.size()) return false;
+            Producto p = productos.get(indice - 1);
+
+            // Si ya está en el carrito, incrementa cantidad
+            for (ItemCarrito i : carrito) {
+                if (i.getProducto().getNombre().equalsIgnoreCase(p.getNombre())) {
+                    i.setCantidad(i.getCantidad() + 1);
+                    return true;
+                }
+            }
+            carrito.add(new ItemCarrito(p, 1));
+            return true;
+        }
+
+        // Eliminar producto del carrito por índice (1-based)
+        public boolean eliminarDelCarritoPorIndice(int indice) {
+            if (indice < 1 || indice > carrito.size()) return false;
+            carrito.remove(indice - 1);
+            return true;
+        }
+
+        public double calcularTotal() {
+            double t = 0;
+            for (ItemCarrito i : carrito) t += i.getSubtotal();
+            return t;
+        }
+
+        // Descuento = 10% del total
+        public double calcularDescuento() {
+            return calcularTotal() * 0.10;
+        }
+
+        // Envío = 5% del total
+        public double calcularEnvio() {
+            if (carrito.isEmpty()) return 0;
+            return calcularTotal() * 0.05;
+        }
+
+        // Total final = total - descuento + envío
+        public double calcularTotalFinal() {
+            return calcularTotal() - calcularDescuento() + calcularEnvio();
+        }
+
+        public boolean realizarCompra() {
+            if (carrito.isEmpty()) return false;
+
+            double total = calcularTotal();
+            double desc = calcularDescuento();
+            double env = calcularEnvio();
+            double totalFinal = total - desc + env;
+
+            List<ItemCarrito> copia = new ArrayList<>();
+            for (ItemCarrito i : carrito)
+                copia.add(new ItemCarrito(i.getProducto(), i.getCantidad()));
+
+            historial.add(new Compra(copia, total, desc, env, totalFinal));
+            carrito.clear();
+            return true;
+        }
+    }
+
+    // ==================== VISTA: CarritoVista ====================
+    static class CarritoVista {
+        private Scanner scanner = new Scanner(System.in);
+
+        public void mostrarMenu() {
+            System.out.println("\n========== CARRITO DE COMPRAS ==========");
+            System.out.println("1. Listar productos");
+            System.out.println("2. Agregar producto al carrito");
+            System.out.println("3. Ver carrito");
+            System.out.println("4. Eliminar producto del carrito");
+            System.out.println("5. Realizar compra");
+            System.out.println("6. Ver historial de compras");
+            System.out.println("7. Salir");
+            System.out.println("========================================");
+        }
+
+        public String solicitarOpcion() {
+            System.out.print("Seleccione una opción: ");
+            return scanner.nextLine();
+        }
+
+        public String solicitarTexto(String msg) {
+            System.out.print(msg);
+            return scanner.nextLine();
+        }
+
+        public int solicitarEntero(String msg) {
+            System.out.print(msg);
+            try { return Integer.parseInt(scanner.nextLine()); }
+            catch (NumberFormatException e) { return -1; }
+        }
+
+        public double solicitarDouble(String msg) {
+            System.out.print(msg);
+            try { return Double.parseDouble(scanner.nextLine()); }
+            catch (NumberFormatException e) { return -1; }
+        }
+
+        // Lista de productos (nombre y precio) + opciones agregar/salir
+        // Retorna: 0 = salir, 1 = agregar nuevo producto, otro = índice seleccionado (si aplica)
+        public int mostrarProductosConOpciones(List<Producto> productos) {
+            System.out.println("\n--- PRODUCTOS DISPONIBLES ---");
+            for (int i = 0; i < productos.size(); i++) {
+                System.out.println((i + 1) + ". " + productos.get(i));
+            }
+            System.out.println("-----------------------------------");
+            System.out.println((productos.size() + 1) + ". Agregar nuevo producto a la lista");
+            System.out.println((productos.size() + 2) + ". Volver al menú principal");
+
+            return solicitarEntero("Seleccione una opción: ");
+        }
+
+        public void mostrarCarrito(List<ItemCarrito> carrito, double total,
+                                   double descuento, double envio, double totalFinal) {
+            if (carrito.isEmpty()) {
+                System.out.println("El carrito está vacío.");
+                return;
+            }
+            System.out.println("\n--- CARRITO ACTUAL ---");
+            for (int i = 0; i < carrito.size(); i++) {
+                System.out.println((i + 1) + ". " + carrito.get(i));
+            }
+            System.out.println("-----------------------------------");
+            System.out.printf("Subtotal:   S/ %.2f%n", total);
+            System.out.printf("Descuento (10%%): -S/ %.2f%n", descuento);
+            System.out.printf("Envío (5%%):      +S/ %.2f%n", envio);
+            System.out.printf("TOTAL A PAGAR:  S/ %.2f%n", totalFinal);
+        }
+
+        public void mostrarHistorial(List<Compra> historial) {
+            if (historial.isEmpty()) {
+                System.out.println("No hay compras en el historial.");
+                return;
+            }
+            System.out.println("\n--- HISTORIAL DE COMPRAS ---");
+            int n = 1;
+            for (Compra c : historial) {
+                System.out.println("\nCompra #" + (n++));
+                for (ItemCarrito i : c.getItems()) System.out.println("   " + i);
+                System.out.printf("   Subtotal: %.2f | Descuento: %.2f | Envío: %.2f | Total: %.2f%n",
+                        c.getTotal(), c.getDescuento(), c.getEnvio(), c.getTotalFinal());
+            }
+        }
+
+        public void mostrarMensaje(String msg) { System.out.println(msg); }
+        public void cerrar() { scanner.close(); }
+    }
+
+    // ==================== CONTROLADOR: CarritoControlador ====================
+    static class CarritoControlador {
+        private CarritoModelo modelo;
+        private CarritoVista vista;
+
+        public CarritoControlador(CarritoModelo modelo, CarritoVista vista) {
+            this.modelo = modelo;
+            this.vista = vista;
+        }
+
+        public void iniciar() {
+            String opcion;
+            do {
+                vista.mostrarMenu();
+                opcion = vista.solicitarOpcion();
+                switch (opcion) {
+                    case "1": listarProductos(); break;
+                    case "2": agregarAlCarrito(); break;
+                    case "3": verCarrito(); break;
+                    case "4": eliminarDelCarrito(); break;
+                    case "5": realizarCompra(); break;
+                    case "6": vista.mostrarHistorial(modelo.getHistorial()); break;
+                    case "7": vista.mostrarMensaje("¡Hasta pronto!"); break;
+                    default:  vista.mostrarMensaje("Opción no válida.");
+                }
+            } while (!opcion.equals("7"));
+            vista.cerrar();
+        }
+
+        // Listar productos con opción de agregar nuevo o volver al menú
+        private void listarProductos() {
+            boolean salir = false;
+            while (!salir) {
+                int op = vista.mostrarProductosConOpciones(modelo.getProductos());
+                int totalOpciones = modelo.getProductos().size();
+
+                if (op == totalOpciones + 1) {
+                    // Agregar nuevo producto
+                    String nombre = vista.solicitarTexto("Nombre del nuevo producto: ");
+                    double precio = vista.solicitarDouble("Precio del nuevo producto: ");
+                    if (modelo.agregarProducto(nombre, precio))
+                        vista.mostrarMensaje("Producto agregado a la lista.");
+                    else
+                        vista.mostrarMensaje("Datos inválidos.");
+                } else if (op == totalOpciones + 2 || op == 0) {
+                    salir = true;
+                } else {
+                    vista.mostrarMensaje("Opción no válida dentro de la lista.");
+                }
+            }
+        }
+
+        // Agregar al carrito solo con el número del producto
+        private void agregarAlCarrito() {
+            if (modelo.getProductos().isEmpty()) {
+                vista.mostrarMensaje("No hay productos disponibles.");
+                return;
+            }
+            int op = vista.mostrarProductosConOpciones(modelo.getProductos());
+            int totalOpciones = modelo.getProductos().size();
+
+            if (op >= 1 && op <= totalOpciones) {
+                if (modelo.agregarAlCarritoPorIndice(op))
+                    vista.mostrarMensaje("Producto agregado al carrito.");
+                else
+                    vista.mostrarMensaje("No se pudo agregar.");
+            } else if (op == totalOpciones + 1) {
+                String nombre = vista.solicitarTexto("Nombre del nuevo producto: ");
+                double precio = vista.solicitarDouble("Precio del nuevo producto: ");
+                if (modelo.agregarProducto(nombre, precio)) {
+                    vista.mostrarMensaje("Producto agregado a la lista.");
+                    // Lo agrega automáticamente al carrito con el nuevo índice
+                    int nuevoIndice = modelo.getProductos().size();
+                    if (modelo.agregarAlCarritoPorIndice(nuevoIndice))
+                        vista.mostrarMensaje("Producto agregado también al carrito.");
+                } else {
+                    vista.mostrarMensaje("Datos inválidos.");
+                }
+            } else if (op == totalOpciones + 2 || op == 0) {
+                // Volver al menú principal
+            } else {
+                vista.mostrarMensaje("Opción no válida.");
+            }
+        }
+
+        private void verCarrito() {
+            vista.mostrarCarrito(
+                modelo.getCarrito(),
+                modelo.calcularTotal(),
+                modelo.calcularDescuento(),
+                modelo.calcularEnvio(),
+                modelo.calcularTotalFinal()
+            );
+        }
+
+        // Eliminar del carrito solo con el número del producto
+        private void eliminarDelCarrito() {
+            if (modelo.getCarrito().isEmpty()) {
+                vista.mostrarMensaje("El carrito está vacío.");
+                return;
+            }
+            verCarrito();
+            int indice = vista.solicitarEntero("Ingrese el número del producto a eliminar: ");
+            if (modelo.eliminarDelCarritoPorIndice(indice))
+                vista.mostrarMensaje("Producto eliminado del carrito.");
+            else
+                vista.mostrarMensaje("Número inválido.");
+        }
+
+        private void realizarCompra() {
+            if (modelo.realizarCompra())
+                vista.mostrarMensaje("Compra realizada con éxito! Guardada en el historial.");
+            else
+                vista.mostrarMensaje("El carrito está vacío.");
+        }
+    }
+
+    // ==================== MAIN ====================
+    public static void main(String[] args) {
+        CarritoModelo modelo = new CarritoModelo();
+        CarritoVista vista = new CarritoVista();
+        CarritoControlador controlador = new CarritoControlador(modelo, vista);
+        controlador.iniciar();
+    }
+}
