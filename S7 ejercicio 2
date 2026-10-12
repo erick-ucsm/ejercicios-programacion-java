@@ -1,0 +1,224 @@
+package laboratorio7;
+
+import java.io.*;
+import java.util.*;
+
+class Personaje2 {
+    private String nombre;
+    private int vida;
+    private int ataque;
+    private int defensa;
+    private int alcance;
+    private int nivel;
+
+    public Personaje2(String nombre, int vida, int ataque, int defensa, int alcance) {
+        this.nombre = nombre;
+        this.vida = vida;
+        this.ataque = ataque;
+        this.defensa = defensa;
+        this.alcance = alcance;
+        this.nivel = 1;
+    }
+
+    public String getNombre() { return nombre; }
+    public int getVida() { return vida; }
+    public int getAtaque() { return ataque; }
+    public int getDefensa() { return defensa; }
+    public int getAlcance() { return alcance; }
+    public int getNivel() { return nivel; }
+
+    public void subirNivel() {
+        this.nivel++;
+        this.vida += 10;
+        this.ataque += 5;
+        this.defensa += 5;
+        this.alcance += 2;
+    }
+
+    @Override
+    public String toString() {
+        return nombre + " [Nivel " + nivel + "] Vida:" + vida + " Atk:" + ataque + " Def:" + defensa + " Alc:" + alcance;
+    }
+}
+
+class Gestor2 {
+    private List<Personaje2> personajes;
+    private final String ARCHIVO = "personajes2.txt";
+    private Random random = new Random();
+
+    public Gestor2() {
+        this.personajes = new ArrayList<>();
+        cargarDesdeArchivo();
+    }
+
+    private void cargarDesdeArchivo() {
+        File file = new File(ARCHIVO);
+        if (!file.exists()) return;
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                // Formato: Nombre Vida Ataque Defensa Alcance Nivel
+                String[] partes = linea.split(" ");
+                if (partes.length == 6) {
+                    String nombre = partes[0];
+                    int vida = Integer.parseInt(partes[1]);
+                    int ataque = Integer.parseInt(partes[2]);
+                    int defensa = Integer.parseInt(partes[3]);
+                    int alcance = Integer.parseInt(partes[4]);
+                    int nivel = Integer.parseInt(partes[5]);
+                    Personaje2 p = new Personaje2(nombre, vida, ataque, defensa, alcance);
+                    for(int i=1; i<nivel; i++) p.subirNivel(); // Simular nivel
+                    personajes.add(p);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error al cargar: " + e.getMessage());
+        }
+    }
+
+    public void guardarEnArchivo() {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(ARCHIVO))) {
+            for (Personaje2 p : personajes) {
+                bw.write(p.getNombre() + " " + p.getVida() + " " + p.getAtaque() + " " + 
+                         p.getDefensa() + " " + p.getAlcance() + " " + p.getNivel());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error al guardar: " + e.getMessage());
+        }
+    }
+
+    public void agregarPersonaje(Personaje2 p) {
+        personajes.add(p);
+        guardarEnArchivo();
+        System.out.println("Personaje agregado.");
+    }
+
+    public void cargarAleatorios(int cantidad) {
+        String[] nombres = {"Aragorn", "Legolas", "Gimli", "Gandalf", "Frodo", "Sam", "Boromir"};
+        for (int i = 0; i < cantidad; i++) {
+            String nombre = nombres[random.nextInt(nombres.length)] + "_" + (random.nextInt(100)+1);
+            int vida = random.nextInt(50) + 10;
+            int ataque = random.nextInt(20) + 5;
+            int defensa = random.nextInt(20) + 5;
+            int alcance = random.nextInt(10) + 1;
+            personajes.add(new Personaje2(nombre, vida, ataque, defensa, alcance));
+        }
+        guardarEnArchivo();
+        System.out.println(cantidad + " personajes aleatorios agregados.");
+    }
+
+    public void filtrarPorAtributo(String atributo) {
+        System.out.println("--- Filtrando por " + atributo + " ---");
+        switch (atributo.toLowerCase()) {
+            case "vida":
+                personajes.sort(Comparator.comparingInt(Personaje2::getVida).reversed());
+                break;
+            case "ataque":
+                personajes.sort(Comparator.comparingInt(Personaje2::getAtaque).reversed());
+                break;
+            case "defensa":
+                personajes.sort(Comparator.comparingInt(Personaje2::getDefensa).reversed());
+                break;
+            case "alcance":
+                personajes.sort(Comparator.comparingInt(Personaje2::getAlcance).reversed());
+                break;
+            default:
+                System.out.println("Atributo no válido.");
+                return;
+        }
+        for (Personaje2 p : personajes) {
+            System.out.println(p);
+        }
+    }
+
+    public void mostrarEstadisticas() {
+        if (personajes.isEmpty()) {
+            System.out.println("No hay personajes.");
+            return;
+        }
+        int totalVida = 0, totalAtaque = 0, totalDefensa = 0, totalAlcance = 0;
+        for (Personaje2 p : personajes) {
+            totalVida += p.getVida();
+            totalAtaque += p.getAtaque();
+            totalDefensa += p.getDefensa();
+            totalAlcance += p.getAlcance();
+        }
+        int n = personajes.size();
+        System.out.println("--- Estadísticas ---");
+        System.out.println("Total Personajes: " + n);
+        System.out.println("Vida Promedio: " + (double)totalVida/n);
+        System.out.println("Ataque Promedio: " + (double)totalAtaque/n);
+        System.out.println("Defensa Promedio: " + (double)totalDefensa/n);
+        System.out.println("Alcance Promedio: " + (double)totalAlcance/n);
+    }
+
+    public void subirNivelPersonaje(String nombre) {
+        for (Personaje2 p : personajes) {
+            if (p.getNombre().equalsIgnoreCase(nombre)) {
+                p.subirNivel();
+                guardarEnArchivo();
+                System.out.println("¡" + nombre + " ha subido de nivel!");
+                return;
+            }
+        }
+        System.out.println("Personaje no encontrado.");
+    }
+}
+
+public class ejercicio2 {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        Gestor2 gestor = new Gestor2();
+        int opcion;
+
+        do {
+            System.out.println("\n--- GESTOR AVANZADO ---");
+            System.out.println("1. Agregar Personaje Manual");
+            System.out.println("2. Cargar Personajes Aleatorios");
+            System.out.println("3. Filtrar por Atributo (Vida/Ataque/Defensa/Alcance)");
+            System.out.println("4. Mostrar Estadísticas");
+            System.out.println("5. Subir Nivel de Personaje");
+            System.out.println("6. Salir");
+            System.out.print("Opción: ");
+            opcion = sc.nextInt();
+            sc.nextLine();
+
+            switch (opcion) {
+                case 1:
+                    System.out.print("Nombre: ");
+                    String n = sc.nextLine();
+                    System.out.print("Vida: "); int v = sc.nextInt();
+                    System.out.print("Ataque: "); int a = sc.nextInt();
+                    System.out.print("Defensa: "); int d = sc.nextInt();
+                    System.out.print("Alcance: "); int al = sc.nextInt();
+                    gestor.agregarPersonaje(new Personaje2(n, v, a, d, al));
+                    break;
+                case 2:
+                    System.out.print("Cantidad a generar: ");
+                    int cant = sc.nextInt();
+                    gestor.cargarAleatorios(cant);
+                    break;
+                case 3:
+                    System.out.print("Atributo a filtrar (vida/ataque/defensa/alcance): ");
+                    String attr = sc.nextLine();
+                    gestor.filtrarPorAtributo(attr);
+                    break;
+                case 4:
+                    gestor.mostrarEstadisticas();
+                    break;
+                case 5:
+                    System.out.print("Nombre del personaje: ");
+                    String nom = sc.nextLine();
+                    gestor.subirNivelPersonaje(nom);
+                    break;
+                case 6:
+                    System.out.println("Saliendo...");
+                    break;
+                default:
+                    System.out.println("Opción inválida.");
+            }
+        } while (opcion != 6);
+        sc.close();
+    }
+}
