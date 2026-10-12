@@ -1,0 +1,84 @@
+package laboratorio7;
+
+import javax.swing.JFileChooser; // IMPORTANTE: Importación explícita
+import java.io.*;
+import java.util.*;
+
+public class ejercicio4 {
+    public static void main(String[] args) {
+        // Crear JFileChooser
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Seleccione un archivo de texto");
+        
+        int resultado = fileChooser.showOpenDialog(null);
+        
+        if (resultado != JFileChooser.APPROVE_OPTION) {
+            System.out.println("No se seleccionó ningún archivo. Saliendo...");
+            return;
+        }
+
+        File archivo = fileChooser.getSelectedFile();
+        System.out.println("Archivo seleccionado: " + archivo.getAbsolutePath());
+
+        int totalLineas = 0;
+        int totalPalabras = 0;
+        int totalCaracteres = 0;
+        Map<String, Integer> frecuenciaPalabras = new HashMap<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(archivo))) {
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                totalLineas++;
+                // Contar caracteres sin contar el salto de línea
+                totalCaracteres += linea.length();
+
+                // Procesar palabras
+                StringBuilder palabraActual = new StringBuilder();
+                for (char c : linea.toCharArray()) {
+                    if (Character.isLetterOrDigit(c)) {
+                        palabraActual.append(c);
+                    } else {
+                        if (palabraActual.length() > 0) {
+                            String palabra = palabraActual.toString().toLowerCase();
+                            frecuenciaPalabras.put(palabra, frecuenciaPalabras.getOrDefault(palabra, 0) + 1);
+                            totalPalabras++;
+                            palabraActual.setLength(0);
+                        }
+                    }
+                }
+                // Última palabra de la línea
+                if (palabraActual.length() > 0) {
+                    String palabra = palabraActual.toString().toLowerCase();
+                    frecuenciaPalabras.put(palabra, frecuenciaPalabras.getOrDefault(palabra, 0) + 1);
+                    totalPalabras++;
+                }
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println("Error: Archivo no encontrado.");
+            return;
+        } catch (IOException e) {
+            System.out.println("Error al leer el archivo: " + e.getMessage());
+            return;
+        }
+
+        // Mostrar resultados
+        System.out.println("\n--- ESTADÍSTICAS DEL ARCHIVO ---");
+        System.out.println("Total de líneas: " + totalLineas);
+        System.out.println("Total de palabras: " + totalPalabras);
+        System.out.println("Total de caracteres (sin saltos de línea): " + totalCaracteres);
+        
+        if (totalLineas > 0) {
+            double promedio = (double) totalPalabras / totalLineas;
+            System.out.printf("Promedio de palabras por línea: %.2f\n", promedio);
+        } else {
+            System.out.println("Promedio de palabras por línea: 0.00");
+        }
+
+        // Palabras más frecuentes (Top 5)
+        System.out.println("\n--- PALABRAS MÁS FRECUENTES ---");
+        frecuenciaPalabras.entrySet().stream()
+            .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))
+            .limit(5)
+            .forEach(entry -> System.out.println(entry.getKey() + ": " + entry.getValue() + " veces"));
+    }
+}
