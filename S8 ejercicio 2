@@ -1,0 +1,209 @@
+package laboratorio8;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Scanner;
+
+public class ejercicio2 {
+
+    // ===== MODELO =====
+    static class Alumno {
+        private int id;
+        private String nombre;
+        private int edad;
+        private String correo;
+
+        public Alumno(int id, String nombre, int edad, String correo) {
+            this.id = id;
+            this.nombre = nombre;
+            this.edad = edad;
+            this.correo = correo;
+        }
+
+        public int getId() { return id; }
+        public String getNombre() { return nombre; }
+        public int getEdad() { return edad; }
+        public String getCorreo() { return correo; }
+
+        @Override
+        public String toString() {
+            return String.format("ID: %-3d | Nombre: %-15s | Edad: %-3d | Correo: %s",
+                    id, nombre, edad, correo);
+        }
+    }
+
+    // ===== GESTOR CON ARREGLO DE OBJETOS =====
+    static class GestorArreglo {
+        private Alumno[] alumnos;
+        private int contador;
+
+        public GestorArreglo(List<Alumno> lista) {
+            this.alumnos = new Alumno[lista.size()];
+            this.contador = 0;
+            for (Alumno a : lista) {
+                alumnos[contador++] = a;
+            }
+        }
+
+        /**
+         * Consulta flexible con lógica Java (sin SQL).
+         * a) campos       -> "id,nombre,edad,correo" (null = todos)
+         * b) campoFiltro  -> campo por el que filtrar (null = sin filtro)
+         * c) campoOrden   -> campo por el que ordenar (null = sin orden)
+         * d) limite       -> máximo de registros (<=0 = sin límite)
+         */
+        public List<Alumno> consultar(String campos,
+                                      String campoFiltro, String valorFiltro,
+                                      String campoOrden, boolean ascendente,
+                                      int limite) {
+
+            List<Alumno> resultado = new ArrayList<>(Arrays.asList(alumnos));
+
+            // (b) FILTRO
+            if (campoFiltro != null && valorFiltro != null) {
+                List<Alumno> filtrados = new ArrayList<>();
+                for (Alumno a : resultado) {
+                    if (cumpleFiltro(a, campoFiltro, valorFiltro)) {
+                        filtrados.add(a);
+                    }
+                }
+                resultado = filtrados;
+            }
+
+            // (c) ORDEN
+            if (campoOrden != null) {
+                Comparator<Alumno> cmp = obtenerComparador(campoOrden);
+                if (!ascendente) cmp = cmp.reversed();
+                resultado.sort(cmp);
+            }
+
+            // (d) LÍMITE
+            if (limite > 0 && limite < resultado.size()) {
+                resultado = new ArrayList<>(resultado.subList(0, limite));
+            }
+
+            return resultado;
+        }
+
+        private Comparator<Alumno> obtenerComparador(String campo) {
+            switch (campo.toLowerCase()) {
+                case "id":     return Comparator.comparingInt(Alumno::getId);
+                case "nombre": return Comparator.comparing(Alumno::getNombre, String.CASE_INSENSITIVE_ORDER);
+                case "edad":   return Comparator.comparingInt(Alumno::getEdad);
+                case "correo": return Comparator.comparing(Alumno::getCorreo, String.CASE_INSENSITIVE_ORDER);
+                default:       return Comparator.comparingInt(Alumno::getId);
+            }
+        }
+
+        private boolean cumpleFiltro(Alumno a, String campo, String valor) {
+            switch (campo.toLowerCase()) {
+                case "id":     return String.valueOf(a.getId()).equals(valor);
+                case "nombre": return a.getNombre().toLowerCase().contains(valor.toLowerCase());
+                case "edad":   return String.valueOf(a.getEdad()).equals(valor);
+                case "correo": return a.getCorreo().toLowerCase().contains(valor.toLowerCase());
+                default:       return false;
+            }
+        }
+
+        // (a) Mostrar solo los campos pedidos
+        public void mostrar(List<Alumno> lista, String campos) {
+            if (campos == null || campos.isBlank()) {
+                lista.forEach(System.out::println);
+                return;
+            }
+            String[] pedidos = campos.toLowerCase().split(",");
+            for (Alumno a : lista) {
+                StringBuilder sb = new StringBuilder();
+                for (String c : pedidos) {
+                    switch (c.trim()) {
+                        case "id" -> sb.append("ID: ").append(a.getId()).append(" | ");
+                        case "nombre" -> sb.append("Nombre: ").append(a.getNombre()).append(" | ");
+                        case "edad" -> sb.append("Edad: ").append(a.getEdad()).append(" | ");
+                        case "correo" -> sb.append("Correo: ").append(a.getCorreo()).append(" | ");
+                    }
+                }
+                System.out.println(sb.toString());
+            }
+        }
+    }
+
+    // ===== MAIN: carga datos de ejemplo y permite consultar =====
+    public static void main(String[] args) {
+        // Datos de ejemplo (simulan los registros de la tabla)
+        List<Alumno> datos = new ArrayList<>();
+        datos.add(new Alumno(1, "Carlos", 20, "carlos@mail.com"));
+        datos.add(new Alumno(2, "María",  22, "maria@mail.com"));
+        datos.add(new Alumno(3, "Lucía",  19, "lucia@mail.com"));
+        datos.add(new Alumno(4, "Carlos", 25, "carlos2@mail.com"));
+        datos.add(new Alumno(5, "Pedro",  30, "pedro@mail.com"));
+
+        GestorArreglo gestor = new GestorArreglo(datos);
+        Scanner sc = new Scanner(System.in);
+
+        int opcion;
+        do {
+            System.out.println("\n===== CONSULTAS CON ARREGLO DE OBJETOS =====");
+            System.out.println("1. Consulta flexible");
+            System.out.println("2. Mostrar todos");
+            System.out.println("3. Salir");
+            System.out.print("Opción: ");
+
+            try { opcion = Integer.parseInt(sc.nextLine()); }
+            catch (NumberFormatException e) { opcion = 0; continue; }
+
+            switch (opcion) {
+                case 1 -> consultaFlexible(gestor, sc);
+                case 2 -> {
+                    System.out.println("\nTODOS LOS ALUMNOS:");
+                    gestor.mostrar(gestor.consultar(null, null, null, null, true, 0), null);
+                }
+                case 3 -> System.out.println("Saliendo...");
+                default -> System.out.println("Opción inválida.");
+            }
+        } while (opcion != 3);
+
+        sc.close();
+    }
+
+    private static void consultaFlexible(GestorArreglo gestor, Scanner sc) {
+        // (a) Campos
+        System.out.print("Campos a mostrar (id,nombre,edad,correo o ENTER=todos): ");
+        String campos = sc.nextLine();
+        if (campos.isBlank()) campos = null;
+
+        // (b) Filtro
+        System.out.print("Campo para filtrar (id/nombre/edad/correo o ENTER=sin filtro): ");
+        String campoFiltro = sc.nextLine();
+        String valorFiltro = null;
+        if (!campoFiltro.isBlank()) {
+            System.out.print("Valor del filtro: ");
+            valorFiltro = sc.nextLine();
+        } else campoFiltro = null;
+
+        // (c) Orden
+        System.out.print("Campo para ordenar (id/nombre/edad/correo o ENTER=sin orden): ");
+        String campoOrden = sc.nextLine();
+        if (campoOrden.isBlank()) campoOrden = null;
+
+        boolean asc = true;
+        if (campoOrden != null) {
+            System.out.print("¿Ascendente (A) o Descendente (D)? ");
+            asc = !sc.nextLine().equalsIgnoreCase("D");
+        }
+
+        // (d) Límite
+        System.out.print("Límite de registros (0 = sin límite): ");
+        int limite;
+        try { limite = Integer.parseInt(sc.nextLine()); }
+        catch (NumberFormatException e) { limite = 0; }
+
+        List<Alumno> res = gestor.consultar(campos, campoFiltro, valorFiltro, campoOrden, asc, limite);
+
+        System.out.println("\nRESULTADO:");
+        System.out.println("------------------------------------------------------------");
+        if (res.isEmpty()) System.out.println("Sin resultados.");
+        else gestor.mostrar(res, campos);
+        System.out.println("------------------------------------------------------------");
+    }
+}
