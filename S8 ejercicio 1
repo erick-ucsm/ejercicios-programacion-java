@@ -1,0 +1,227 @@
+package laboratorio8;
+import java.sql.*;
+import java.util.Scanner;
+
+public class ejercicio1 {
+
+    private static final String URL = "jdbc:sqlite:escuela.db";
+    private static final String CLAVE_SECRETA = "admin123";
+    private static final Scanner sc = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        crearTabla();
+
+        int opcion;
+        do {
+            System.out.println("\n===== SISTEMA DE ALUMNOS =====");
+            System.out.println("1. Ingresar alumno");
+            System.out.println("2. Mostrar alumnos");
+            System.out.println("3. Actualizar alumno");
+            System.out.println("4. Borrar alumno");
+            System.out.println("5. Salir");
+            System.out.print("Opción: ");
+
+            try {
+                opcion = Integer.parseInt(sc.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.println("Ingresa un número válido.");
+                opcion = 0;
+                continue;
+            }
+
+            switch (opcion) {
+                case 1 -> ingresar();
+                case 2 -> mostrar();
+                case 3 -> actualizar();
+                case 4 -> borrar();
+                case 5 -> System.out.println("Saliendo...");
+                default -> System.out.println("Opción inválida.");
+            }
+        } while (opcion != 5);
+
+        sc.close();
+    }
+
+    // ===== Conexión =====
+    private static Connection conectar() throws SQLException {
+        try {
+            Class.forName("org.sqlite.JDBC");
+        } catch (ClassNotFoundException e) {
+            System.out.println("Driver no encontrado: " + e.getMessage());
+        }
+        return DriverManager.getConnection(URL);
+    }
+
+    // ===== Crear tabla (4 campos) =====
+    private static void crearTabla() {
+        String sql = "CREATE TABLE IF NOT EXISTS alumnos (" +
+                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                     "nombre TEXT NOT NULL, " +
+                     "edad INTEGER NOT NULL, " +
+                     "correo TEXT NOT NULL)";
+        try (Connection con = conectar();
+             Statement stmt = con.createStatement()) {
+            stmt.execute(sql);
+            System.out.println("Tabla 'alumnos' lista (id, nombre, edad, correo).");
+        } catch (SQLException e) {
+            System.out.println("Error al crear tabla: " + e.getMessage());
+        }
+    }
+
+    // ===== Pedir clave =====
+    private static boolean pedirClave() {
+        System.out.print("Clave para confirmar: ");
+        return sc.nextLine().equals(CLAVE_SECRETA);
+    }
+
+    // ===== INSERT =====
+    private static void ingresar() {
+        System.out.print("Nombre: "); String nombre = sc.nextLine();
+        System.out.print("Edad: ");
+        int edad;
+        try { edad = Integer.parseInt(sc.nextLine()); }
+        catch (NumberFormatException e) { System.out.println("Edad inválida."); return; }
+        System.out.print("Correo: "); String correo = sc.nextLine();
+
+        String sql = "INSERT INTO alumnos (nombre, edad, correo) VALUES (?, ?, ?)";
+        Connection con = null;
+        try {
+            con = conectar();
+            con.setAutoCommit(false);
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, nombre);
+            pstmt.setInt(2, edad);
+            pstmt.setString(3, correo);
+            pstmt.executeUpdate();
+
+            if (pedirClave()) {
+                con.commit();
+                System.out.println("COMMIT: Alumno ingresado.");
+            } else {
+                con.rollback();
+                System.out.println("ROLLBACK: Ingreso cancelado.");
+            }
+            pstmt.close();
+        } catch (SQLException e) {
+            System.out.println("Error SQL: " + e.getMessage());
+            if (con != null) try { con.rollback(); } catch (SQLException ex) {}
+        } finally {
+            if (con != null) try { con.close(); } catch (SQLException e) {}
+        }
+    }
+
+    // ===== SELECT =====
+    private static void mostrar() {
+        String sql = "SELECT * FROM alumnos";
+        try (Connection con = conectar();
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            System.out.println("\nLISTA DE ALUMNOS");
+            System.out.println("------------------------------------------------------------");
+            System.out.printf("%-5s %-15s %-5s %-25s%n", "ID", "Nombre", "Edad", "Correo");
+            System.out.println("------------------------------------------------------------");
+
+            boolean hay = false;
+            while (rs.next()) {
+                hay = true;
+                System.out.printf("%-5d %-15s %-5d %-25s%n",
+                        rs.getInt("id"),
+                        rs.getString("nombre"),
+                        rs.getInt("edad"),
+                        rs.getString("correo"));
+            }
+            if (!hay) System.out.println("No hay alumnos registrados.");
+            System.out.println("------------------------------------------------------------");
+
+        } catch (SQLException e) {
+            System.out.println("Error al mostrar: " + e.getMessage());
+        }
+    }
+
+    // ===== UPDATE =====
+    private static void actualizar() {
+        System.out.print("ID a actualizar: ");
+        int id;
+        try { id = Integer.parseInt(sc.nextLine()); }
+        catch (NumberFormatException e) { System.out.println("⚠️ ID inválido."); return; }
+
+        System.out.print("Nuevo nombre: "); String nombre = sc.nextLine();
+        System.out.print("Nueva edad: ");
+        int edad;
+        try { edad = Integer.parseInt(sc.nextLine()); }
+        catch (NumberFormatException e) { System.out.println("⚠️ Edad inválida."); return; }
+        System.out.print("Nuevo correo: "); String correo = sc.nextLine();
+
+        String sql = "UPDATE alumnos SET nombre = ?, edad = ?, correo = ? WHERE id = ?";
+        Connection con = null;
+        try {
+            con = conectar();
+            con.setAutoCommit(false);
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, nombre);
+            pstmt.setInt(2, edad);
+            pstmt.setString(3, correo);
+            pstmt.setInt(4, id);
+            int filas = pstmt.executeUpdate();
+
+            if (filas == 0) {
+                System.out.println("No existe alumno con ID " + id);
+                con.rollback();
+                return;
+            }
+
+            if (pedirClave()) {
+                con.commit();
+                System.out.println("COMMIT: Alumno actualizado.");
+            } else {
+                con.rollback();
+                System.out.println("ROLLBACK: Actualización cancelada.");
+            }
+            pstmt.close();
+        } catch (SQLException e) {
+            System.out.println("Error SQL: " + e.getMessage());
+            if (con != null) try { con.rollback(); } catch (SQLException ex) {}
+        } finally {
+            if (con != null) try { con.close(); } catch (SQLException e) {}
+        }
+    }
+
+    // ===== DELETE =====
+    private static void borrar() {
+        System.out.print("ID a borrar: ");
+        int id;
+        try { id = Integer.parseInt(sc.nextLine()); }
+        catch (NumberFormatException e) { System.out.println("ID inválido."); return; }
+
+        String sql = "DELETE FROM alumnos WHERE id = ?";
+        Connection con = null;
+        try {
+            con = conectar();
+            con.setAutoCommit(false);
+            PreparedStatement pstmt = con.prepareStatement(sql);
+            pstmt.setInt(1, id);
+            int filas = pstmt.executeUpdate();
+
+            if (filas == 0) {
+                System.out.println("No existe alumno con ID " + id);
+                con.rollback();
+                return;
+            }
+
+            if (pedirClave()) {
+                con.commit();
+                System.out.println("COMMIT: Alumno borrado.");
+            } else {
+                con.rollback();
+                System.out.println("ROLLBACK: Borrado cancelado.");
+            }
+            pstmt.close();
+        } catch (SQLException e) {
+            System.out.println("Error SQL: " + e.getMessage());
+            if (con != null) try { con.rollback(); } catch (SQLException ex) {}
+        } finally {
+            if (con != null) try { con.close(); } catch (SQLException e) {}
+        }
+    }
+}
