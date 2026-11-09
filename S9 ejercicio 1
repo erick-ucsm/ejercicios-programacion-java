@@ -1,0 +1,82 @@
+package laboratorio9;
+
+import java.awt.EventQueue;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
+
+public class ejercicio1 extends JFrame {
+	
+	private static final long serialVersionUID = 1L;
+	private JPanel contentPane;
+	private JTextField txtNumero1;
+	private JTextField txtNumero2;
+	private JLabel lblResultado;
+	
+	public static void main(String[] args) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					ejercicio1 frame = new ejercicio1();
+					frame.setVisible(true);
+				} 
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+	
+	public ejercicio1() {
+		setTitle("Suma - Cardeña Maque Erick / Yujra Quenta Rohit");
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setBounds(100, 100, 400, 250);
+		contentPane = new JPanel();
+		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+		setContentPane(contentPane);
+		contentPane.setLayout(null);
+		
+		JLabel lblNewLabel = new JLabel("Primer número:");
+		lblNewLabel.setBounds(30, 25, 110, 20);
+		contentPane.add(lblNewLabel);
+		
+		txtNumero1 = new JTextField();
+		txtNumero1.setBounds(150, 25, 180, 22);
+		contentPane.add(txtNumero1);
+		txtNumero1.setColumns(10);
+		
+		JLabel lblNewLabel_1 = new JLabel("Segundo número:");
+		lblNewLabel_1.setBounds(30, 60, 110, 20);
+		contentPane.add(lblNewLabel_1);
+		
+		txtNumero2 = new JTextField();
+		txtNumero2.setBounds(150, 60, 180, 22);
+		contentPane.add(txtNumero2);
+		txtNumero2.setColumns(10);
+		
+		JButton btnSumar = new JButton("Sumar");
+		btnSumar.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+				int numero1 = Integer.parseInt(txtNumero1.getText().trim());
+				int numero2 = Integer.parseInt(txtNumero2.getText().trim());
+				lblResultado.setText("Resultado: " + (numero1 + numero2));
+				} 
+				catch (NumberFormatException ex) {
+				lblResultado.setText("Resultado: ingrese números enteros válidos");
+				}
+			}
+		});
+		btnSumar.setBounds(150, 100, 100, 25);
+		contentPane.add(btnSumar);
+		
+		lblResultado = new JLabel("Resultado:");
+		lblResultado.setBounds(30, 145, 320, 20);
+		contentPane.add(lblResultado);
+		}
+}
