@@ -1,0 +1,226 @@
+package laboratorio9;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
+
+public class ejercicio2
+{
+    public static void main(String[] args)
+    {
+        MarcoPasajes marcoPasajes = new MarcoPasajes();
+        marcoPasajes.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        marcoPasajes.setSize(620, 480);
+        marcoPasajes.setLocationRelativeTo(null);
+        marcoPasajes.setVisible(true);
+    }
+}
+
+class MarcoPasajes extends JFrame
+{
+    private final JTextField campoNombres;
+    private final JTextField campoDocumento;
+    private final JTextField campoFecha;
+    private final JComboBox<String> comboOrigen;
+    private final JComboBox<String> comboDestino;
+    private final JRadioButton radioPiso1;
+    private final JRadioButton radioPiso2;
+    private final ButtonGroup grupoPiso;
+    private final JCheckBox checkAudifonos;
+    private final JCheckBox checkManta;
+    private final JCheckBox checkRevistas;
+    private final JList<String> listaCalidad;
+    private final JButton botonResumen;
+    private final JButton botonReiniciar;
+
+    private static final String[] ciudades = {"Arequipa", "Lima", "Cusco", "Puno", "Tacna", "Moquegua", "Juliaca"};
+    private static final String[] calidades = {"Economico", "Standard", "VIP"};
+    private static final double[] precios = {40.0, 60.0, 90.0};
+    private static final double precioExtra = 5.0;
+
+    public MarcoPasajes()
+    {
+        super("Compra de Pasajes - Cardeña Maque Erick / Yujra Quenta Rohit");
+        setLayout(new BorderLayout(10, 10));
+
+        JLabel etiquetaTitulo = new JLabel("COMPRA DE PASAJES - TRANSPORTE TERRESTRE", SwingConstants.CENTER);
+        etiquetaTitulo.setFont(new Font("SansSerif", Font.BOLD, 16));
+        etiquetaTitulo.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+        add(etiquetaTitulo, BorderLayout.NORTH);
+
+        JPanel panelDatos = new JPanel(new GridLayout(5, 2, 8, 8));
+
+        campoNombres = new JTextField();
+        campoDocumento = new JTextField();
+        campoFecha = new JTextField();
+        comboOrigen = new JComboBox<String>(ciudades);
+        comboDestino = new JComboBox<String>(ciudades);
+        comboDestino.setSelectedIndex(1);
+
+        panelDatos.add(new JLabel("Nombres y apellidos:"));
+        panelDatos.add(campoNombres);
+        panelDatos.add(new JLabel("Documento de identidad (DNI):"));
+        panelDatos.add(campoDocumento);
+        panelDatos.add(new JLabel("Fecha de viaje (dd/mm/aaaa):"));
+        panelDatos.add(campoFecha);
+        panelDatos.add(new JLabel("Lugar de origen:"));
+        panelDatos.add(comboOrigen);
+        panelDatos.add(new JLabel("Lugar de destino:"));
+        panelDatos.add(comboDestino);
+
+        JPanel panelPiso = new JPanel(new GridLayout(2, 1));
+        panelPiso.setBorder(BorderFactory.createTitledBorder("Piso"));
+        radioPiso1 = new JRadioButton("1er piso", true);
+        radioPiso2 = new JRadioButton("2do piso", false);
+        grupoPiso = new ButtonGroup();
+        grupoPiso.add(radioPiso1);
+        grupoPiso.add(radioPiso2);
+        panelPiso.add(radioPiso1);
+        panelPiso.add(radioPiso2);
+
+        JPanel panelServicios = new JPanel(new GridLayout(3, 1));
+        panelServicios.setBorder(BorderFactory.createTitledBorder("Servicios opcionales"));
+        checkAudifonos = new JCheckBox("Audifonos");
+        checkManta = new JCheckBox("Manta");
+        checkRevistas = new JCheckBox("Revistas");
+        panelServicios.add(checkAudifonos);
+        panelServicios.add(checkManta);
+        panelServicios.add(checkRevistas);
+
+        JPanel panelCalidad = new JPanel(new BorderLayout());
+        panelCalidad.setBorder(BorderFactory.createTitledBorder("Calidad de servicio"));
+        listaCalidad = new JList<String>(calidades);
+        listaCalidad.setVisibleRowCount(3);
+        listaCalidad.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        listaCalidad.setSelectedIndex(0);
+        panelCalidad.add(new JScrollPane(listaCalidad), BorderLayout.CENTER);
+
+        JPanel panelOpciones = new JPanel(new GridLayout(1, 3, 8, 8));
+        panelOpciones.add(panelPiso);
+        panelOpciones.add(panelServicios);
+        panelOpciones.add(panelCalidad);
+
+        JPanel panelCentro = new JPanel(new BorderLayout(10, 10));
+        panelCentro.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        panelCentro.add(panelDatos, BorderLayout.NORTH);
+        panelCentro.add(panelOpciones, BorderLayout.CENTER);
+        add(panelCentro, BorderLayout.CENTER);
+
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
+        botonResumen = new JButton("Mostrar resumen");
+        botonReiniciar = new JButton("Reiniciar");
+        panelBotones.add(botonResumen);
+        panelBotones.add(botonReiniciar);
+        add(panelBotones, BorderLayout.SOUTH);
+
+        ManejadorBotones manejador = new ManejadorBotones();
+        botonResumen.addActionListener(manejador);
+        botonReiniciar.addActionListener(manejador);
+    }
+
+    private String validar()
+    {
+        if (campoNombres.getText().trim().isEmpty())
+            return "Ingrese los nombres y apellidos del pasajero.";
+        if (!campoDocumento.getText().trim().matches("\\d{8}"))
+            return "El documento de identidad debe tener 8 digitos.";
+        if (!campoFecha.getText().trim().matches("\\d{2}/\\d{2}/\\d{4}"))
+            return "La fecha de viaje debe tener el formato dd/mm/aaaa.";
+        if (comboOrigen.getSelectedIndex() == comboDestino.getSelectedIndex())
+            return "El lugar de origen y el de destino deben ser diferentes.";
+        return null;
+    }
+
+    private void mostrarResumen()
+    {
+        String error = validar();
+        if (error != null)
+        {
+            JOptionPane.showMessageDialog(this, error, "Datos incompletos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String piso = radioPiso1.isSelected() ? "1er piso" : "2do piso";
+
+        String servicios = "";
+        int cantidadExtras = 0;
+        if (checkAudifonos.isSelected())
+        {
+            servicios += "Audifonos";
+            cantidadExtras++;
+        }
+        if (checkManta.isSelected())
+        {
+            servicios += (servicios.isEmpty() ? "" : ", ") + "Manta";
+            cantidadExtras++;
+        }
+        if (checkRevistas.isSelected())
+        {
+            servicios += (servicios.isEmpty() ? "" : ", ") + "Revistas";
+            cantidadExtras++;
+        }
+        if (servicios.isEmpty())
+            servicios = "Ninguno";
+
+        int indiceCalidad = listaCalidad.getSelectedIndex();
+        double total = precios[indiceCalidad] + cantidadExtras * precioExtra;
+
+        String resumen = String.format(
+                "Pasajero: %s%nDocumento: %s%nFecha de viaje: %s%nRuta: %s - %s%nPiso: %s%nServicios opcionales: %s%nCalidad de servicio: %s%n%nTotal a pagar: S/ %.2f",
+                campoNombres.getText().trim(),
+                campoDocumento.getText().trim(),
+                campoFecha.getText().trim(),
+                comboOrigen.getSelectedItem(),
+                comboDestino.getSelectedItem(),
+                piso,
+                servicios,
+                listaCalidad.getSelectedValue(),
+                total);
+
+        JOptionPane.showMessageDialog(this, resumen, "Resumen de compra", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void reiniciar()
+    {
+        campoNombres.setText("");
+        campoDocumento.setText("");
+        campoFecha.setText("");
+        comboOrigen.setSelectedIndex(0);
+        comboDestino.setSelectedIndex(1);
+        radioPiso1.setSelected(true);
+        checkAudifonos.setSelected(false);
+        checkManta.setSelected(false);
+        checkRevistas.setSelected(false);
+        listaCalidad.setSelectedIndex(0);
+        campoNombres.requestFocus();
+    }
+
+    private class ManejadorBotones implements ActionListener
+    {
+        @Override
+        public void actionPerformed(ActionEvent evento)
+        {
+            if (evento.getSource() == botonResumen)
+                mostrarResumen();
+            else if (evento.getSource() == botonReiniciar)
+                reiniciar();
+        }
+    }
+}
