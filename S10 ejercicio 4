@@ -1,0 +1,160 @@
+
+package laboratorio10;
+
+import javax.sound.sampled.*;
+import javax.swing.*;
+import java.awt.*;
+import java.io.File;
+import java.io.IOException;
+
+public class ejercicio4 {
+
+    private static Clip clip;
+    private static long posicionPausa = 0;
+
+    public static void main(String[] args) {
+
+        JFrame frame = new JFrame("Reproductor de Música");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(460, 240);
+        frame.setLayout(new BorderLayout(10, 10));
+
+        JLabel lblTitulo = new JLabel("Pista: musica.wav", SwingConstants.CENTER);
+        lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 15));
+
+        JLabel lblEstado = new JLabel("Estado: Detenido", SwingConstants.CENTER);
+
+        JProgressBar barraProgreso = new JProgressBar(0, 1000);
+
+        JLabel lblTiempo = new JLabel("00:00 / 00:00", SwingConstants.CENTER);
+
+        JPanel panelInfo = new JPanel(new GridLayout(4, 1, 5, 5));
+        panelInfo.setBorder(BorderFactory.createEmptyBorder(10, 20, 0, 20));
+
+        panelInfo.add(lblTitulo);
+        panelInfo.add(lblEstado);
+        panelInfo.add(barraProgreso);
+        panelInfo.add(lblTiempo);
+
+        JButton btnReproducir = new JButton("Reproducir");
+        JButton btnPausar = new JButton("Pausar");
+        JButton btnReanudar = new JButton("Reanudar");
+
+        btnPausar.setEnabled(false);
+        btnReanudar.setEnabled(false);
+
+        JPanel panelBotones = new JPanel(new FlowLayout());
+
+        panelBotones.add(btnReproducir);
+        panelBotones.add(btnPausar);
+        panelBotones.add(btnReanudar);
+
+        frame.add(panelInfo, BorderLayout.CENTER);
+        frame.add(panelBotones, BorderLayout.SOUTH);
+
+        try {
+
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(new File("musica.wav"));
+
+            clip = AudioSystem.getClip();
+            clip.open(audioStream);
+
+            lblTiempo.setText("00:00 / " + formatear(clip.getMicrosecondLength()));
+
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
+
+            JOptionPane.showMessageDialog(frame, "No se pudo cargar musica.wav: " +
+            e.getMessage());
+
+            btnReproducir.setEnabled(false);
+
+        }
+
+        btnReproducir.addActionListener(e -> {
+
+            clip.stop();
+            clip.setFramePosition(0);
+            clip.start();
+
+            posicionPausa = 0;
+
+            lblEstado.setText("Estado: Reproduciendo");
+
+            btnPausar.setEnabled(true);
+            btnReanudar.setEnabled(false);
+
+            System.out.println("Reproduciendo desde el inicio");
+
+        });
+
+        btnPausar.addActionListener(e -> {
+
+            if (clip.isRunning()) {
+
+                posicionPausa = clip.getMicrosecondPosition();
+                clip.stop();
+
+                lblEstado.setText("Estado: Pausado en " + formatear(posicionPausa));
+
+                btnPausar.setEnabled(false);
+                btnReanudar.setEnabled(true);
+
+                System.out.println("Pausado en " + formatear(posicionPausa));
+
+            }
+
+        });
+
+        btnReanudar.addActionListener(e -> {
+
+            clip.setMicrosecondPosition(posicionPausa);
+            clip.start();
+
+            lblEstado.setText("Estado: Reproduciendo");
+
+            btnPausar.setEnabled(true);
+            btnReanudar.setEnabled(false);
+
+            System.out.println("Reanudado desde " + formatear(posicionPausa));
+
+        });
+
+        Timer temporizador = new Timer(200, e -> {
+
+            if (clip != null) {
+
+                long actual = clip.getMicrosecondPosition();
+                long total = clip.getMicrosecondLength();
+
+                barraProgreso.setValue((int) (actual * 1000 / total));
+
+                lblTiempo.setText(formatear(actual) + " / " + formatear(total));
+
+                if (!clip.isRunning() && clip.getFramePosition() >= clip.getFrameLength()) {
+
+                    lblEstado.setText("Estado: Finalizado");
+
+                    btnPausar.setEnabled(false);
+                    btnReanudar.setEnabled(false);
+
+                }
+
+            }
+
+        });
+
+        temporizador.start();
+
+        frame.setVisible(true);
+
+    }
+
+    private static String formatear(long microsegundos) {
+
+        int segundos = (int) (microsegundos / 1_000_000);
+
+        return String.format("%02d:%02d", segundos / 60, segundos % 60);
+
+    }
+
+}
