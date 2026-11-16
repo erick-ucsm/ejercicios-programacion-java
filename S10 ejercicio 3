@@ -1,0 +1,126 @@
+package laboratorio10;
+
+import javax.sound.sampled.*;
+import javax.swing.*;
+import java.awt.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ejercicio3 {
+
+    private static final Map<String, Clip> sonidos = new HashMap<>();
+
+    public static void main(String[] args) {
+
+        JFrame frame = new JFrame("Reproductor de Efectos de Sonido");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(480, 220);
+        frame.setLayout(new BorderLayout(10, 10));
+
+        String[] nombres = {"Aplausos", "Campana", "Explosión"};
+        String[] archivos = {"aplausos.wav", "campana.wav", "explosion.wav"};
+
+        JLabel lblEstado = new JLabel("Seleccione un efecto de sonido", SwingConstants.CENTER);
+        lblEstado.setFont(new Font("SansSerif", Font.BOLD, 14));
+        lblEstado.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+
+        JPanel panelBotones = new JPanel(new GridLayout(1, 3, 10, 10));
+        panelBotones.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
+
+        for (int i = 0; i < nombres.length; i++) {
+
+            String nombre = nombres[i];
+
+            JButton boton = new JButton(nombre);
+            boton.setFont(new Font("SansSerif", Font.BOLD, 14));
+
+            Clip clip = cargarClip(archivos[i]);
+
+            if (clip == null) {
+
+                boton.setEnabled(false);
+                boton.setToolTipText("No se encontró " + archivos[i]);
+
+            } else {
+
+                sonidos.put(nombre, clip);
+
+                boton.addActionListener(e -> {
+
+                    reproducir(nombre);
+                    lblEstado.setText("Reproduciendo: " + nombre);
+
+                });
+
+            }
+
+            panelBotones.add(boton);
+
+        }
+
+        JButton btnDetener = new JButton("Detener todo");
+
+        btnDetener.addActionListener(e -> {
+
+            for (Clip clip : sonidos.values()) {
+
+                clip.stop();
+
+            }
+
+            lblEstado.setText("Sonidos detenidos");
+
+        });
+
+        JPanel panelInferior = new JPanel();
+        panelInferior.add(btnDetener);
+
+        frame.add(lblEstado, BorderLayout.NORTH);
+        frame.add(panelBotones, BorderLayout.CENTER);
+        frame.add(panelInferior, BorderLayout.SOUTH);
+
+        frame.setVisible(true);
+
+    }
+
+    private static Clip cargarClip(String ruta) {
+
+        try {
+
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(new File(ruta));
+
+            Clip clip = AudioSystem.getClip();
+            clip.open(audioStream);
+
+            return clip;
+
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
+
+            System.out.println("No se pudo cargar " + ruta + ": " + e.getMessage());
+
+            return null;
+
+        }
+
+    }
+
+    private static void reproducir(String nombre) {
+
+        Clip clip = sonidos.get(nombre);
+
+        if (clip.isRunning()) {
+
+            clip.stop();
+
+        }
+
+        clip.setFramePosition(0);
+        clip.start();
+
+        System.out.println("Reproduciendo: " + nombre);
+
+    }
+
+}
