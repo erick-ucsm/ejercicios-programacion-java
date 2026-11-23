@@ -1,0 +1,151 @@
+package laboratorio12;
+
+import java.util.ArrayList;
+import java.util.List;
+
+// ============================================================
+// EJERCICIO 2: Videojuego de Estrategia con Personajes
+// Combina los patrones: Observer + Strategy + Command
+// ============================================================
+
+// ---------- PATRÓN OBSERVER ----------
+interface Observer {
+    void update(String nombrePersonaje, int vidaActual);
+}
+
+class HUDObserver implements Observer {
+    @Override
+    public void update(String nombrePersonaje, int vidaActual) {
+        System.out.println("[HUD] " + nombrePersonaje + " → Vida: " + vidaActual);
+    }
+}
+
+class Personaje {
+    private String nombre;
+    private int vida;
+    private List<Observer> observadores = new ArrayList<>();
+
+    public Personaje(String nombre, int vida) {
+        this.nombre = nombre;
+        this.vida = vida;
+    }
+
+    public void attach(Observer o) { observadores.add(o); }
+    public void detach(Observer o) { observadores.remove(o); }
+
+    public void recibirDanio(int danio) {
+        vida = Math.max(0, vida - danio);
+        notificar();
+    }
+
+    public void curar(int cantidad) {
+        vida += cantidad;
+        notificar();
+    }
+
+    private void notificar() {
+        for (Observer o : observadores) {
+            o.update(nombre, vida);
+        }
+    }
+
+    public String getNombre() { return nombre; }
+    public int getVida() { return vida; }
+}
+
+// ---------- PATRÓN STRATEGY ----------
+interface AtaqueStrategy {
+    int atacar();
+    String getNombre();
+}
+
+class AtaqueEspada implements AtaqueStrategy {
+    @Override
+    public int atacar() {
+        return 15 + (int)(Math.random() * 10);
+    }
+    @Override
+    public String getNombre() { return "Espada"; }
+}
+
+class AtaqueArco implements AtaqueStrategy {
+    @Override
+    public int atacar() {
+        return 10 + (int)(Math.random() * 8);
+    }
+    @Override
+    public String getNombre() { return "Arco"; }
+}
+
+class AtaqueMagia implements AtaqueStrategy {
+    @Override
+    public int atacar() {
+        return 25 + (int)(Math.random() * 15);
+    }
+    @Override
+    public String getNombre() { return "Magia"; }
+}
+
+// ---------- PATRÓN COMMAND ----------
+interface Command {
+    void execute();
+}
+
+class AtacarCommand implements Command {
+    private Personaje atacante;
+    private Personaje objetivo;
+    private AtaqueStrategy estrategia;
+
+    public AtacarCommand(Personaje atacante, Personaje objetivo, AtaqueStrategy estrategia) {
+        this.atacante = atacante;
+        this.objetivo = objetivo;
+        this.estrategia = estrategia;
+    }
+
+    @Override
+    public void execute() {
+        int danio = estrategia.atacar();
+        System.out.println(atacante.getNombre() + " ataca con " + estrategia.getNombre()
+                + " a " + objetivo.getNombre() + " (daño: " + danio + ")");
+        objetivo.recibirDanio(danio);
+    }
+}
+
+class ReplayManager {
+    private List<Command> historial = new ArrayList<>();
+
+    public void registrarYEjecutar(Command c) {
+        c.execute();
+        historial.add(c);
+    }
+
+    public void reproducir() {
+        System.out.println("\n=== REPLAY DE LA PARTIDA ===");
+        for (Command c : historial) {
+            c.execute();
+        }
+    }
+}
+
+// ---------- CLASE PRINCIPAL ----------
+public class ejercicio2 {
+    public static void main(String[] args) {
+        Personaje heroe = new Personaje("Héroe", 100);
+        Personaje villano = new Personaje("Villano", 120);
+
+        HUDObserver hud = new HUDObserver();
+        heroe.attach(hud);
+        villano.attach(hud);
+
+        ReplayManager replay = new ReplayManager();
+
+        replay.registrarYEjecutar(new AtacarCommand(heroe, villano, new AtaqueEspada()));
+        replay.registrarYEjecutar(new AtacarCommand(villano, heroe, new AtaqueArco()));
+        replay.registrarYEjecutar(new AtacarCommand(heroe, villano, new AtaqueMagia()));
+
+        System.out.println("\n--- Curación ---");
+        heroe.curar(20);
+
+        replay.reproducir();
+    }
+}
