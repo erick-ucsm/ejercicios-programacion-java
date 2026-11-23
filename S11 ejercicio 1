@@ -1,0 +1,198 @@
+package laboratorio11;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
+
+// ============================================================
+// EJERCICIO 1: Sistema de Notificaciones de una Tienda Online
+// Combina los patrones: Observer + Strategy + Command
+// ============================================================
+
+// ---------- PATRÓN OBSERVER ----------
+interface Observer {
+    void update(String mensaje);
+}
+
+class ClienteObserver implements Observer {
+    private String nombre;
+
+    public ClienteObserver(String nombre) {
+        this.nombre = nombre;
+    }
+
+    @Override
+    public void update(String mensaje) {
+        System.out.println("[NOTIFICACIÓN] " + nombre + ": " + mensaje);
+    }
+}
+
+class ProductoSubject {
+    private String nombreProducto;
+    private boolean enStock;
+    private List<Observer> observadores = new ArrayList<>();
+
+    public ProductoSubject(String nombreProducto) {
+        this.nombreProducto = nombreProducto;
+        this.enStock = false;
+    }
+
+    public void attach(Observer o) {
+        observadores.add(o);
+    }
+
+    public void detach(Observer o) {
+        observadores.remove(o);
+    }
+
+    public void setEnStock(boolean enStock) {
+        this.enStock = enStock;
+        if (enStock) {
+            notifyObservers("El producto '" + nombreProducto + "' ya está disponible!");
+        }
+    }
+
+    private void notifyObservers(String mensaje) {
+        for (Observer o : observadores) {
+            o.update(mensaje);
+        }
+    }
+
+    public String getNombreProducto() {
+        return nombreProducto;
+    }
+}
+
+// ---------- PATRÓN STRATEGY ----------
+interface EnvioStrategy {
+    double calcularCosto(double pesoKg);
+    String getDescripcion();
+}
+
+class EnvioEstandar implements EnvioStrategy {
+    @Override
+    public double calcularCosto(double pesoKg) {
+        return 5.0 + (pesoKg * 1.0);
+    }
+
+    @Override
+    public String getDescripcion() {
+        return "Envío Estándar (5-7 días)";
+    }
+}
+
+class EnvioExpress implements EnvioStrategy {
+    @Override
+    public double calcularCosto(double pesoKg) {
+        return 15.0 + (pesoKg * 2.5);
+    }
+
+    @Override
+    public String getDescripcion() {
+        return "Envío Express (1-2 días)";
+    }
+}
+
+class EnvioInternacional implements EnvioStrategy {
+    @Override
+    public double calcularCosto(double pesoKg) {
+        return 50.0 + (pesoKg * 8.0);
+    }
+
+    @Override
+    public String getDescripcion() {
+        return "Envío Internacional (10-15 días)";
+    }
+}
+
+// ---------- PATRÓN COMMAND ----------
+interface Command {
+    void execute();
+    void undo();
+}
+
+class ComprarProductoCommand implements Command {
+    private ProductoSubject producto;
+    private EnvioStrategy envio;
+    private double pesoKg;
+    private boolean ejecutado = false;
+    private double costoTotal;
+
+    public ComprarProductoCommand(ProductoSubject producto, EnvioStrategy envio, double pesoKg) {
+        this.producto = producto;
+        this.envio = envio;
+        this.pesoKg = pesoKg;
+    }
+
+    @Override
+    public void execute() {
+        costoTotal = envio.calcularCosto(pesoKg);
+        System.out.println("Compra realizada: " + producto.getNombreProducto());
+        System.out.println("  Tipo: " + envio.getDescripcion());
+        System.out.println("  Peso: " + pesoKg + " kg");
+        System.out.println("  Costo de envío: S/ " + costoTotal);
+        ejecutado = true;
+    }
+
+    @Override
+    public void undo() {
+        if (ejecutado) {
+            System.out.println("Compra deshecha: " + producto.getNombreProducto()
+                    + " | Reembolso: S/ " + costoTotal);
+            ejecutado = false;
+        } else {
+            System.out.println("No hay compra que deshacer para " + producto.getNombreProducto());
+        }
+    }
+}
+
+class GestorComandos {
+    private Stack<Command> historial = new Stack<>();
+
+    public void ejecutarComando(Command c) {
+        c.execute();
+        historial.push(c);
+    }
+
+    public void deshacerUltimo() {
+        if (!historial.isEmpty()) {
+            historial.pop().undo();
+        } else {
+            System.out.println("No hay comandos para deshacer.");
+        }
+    }
+}
+
+// ---------- CLASE PRINCIPAL ----------
+public class ejercicio1 {
+    public static void main(String[] args) {
+        // --- Observer ---
+        ProductoSubject laptop = new ProductoSubject("Laptop Gamer XYZ");
+        ClienteObserver c1 = new ClienteObserver("Ana");
+        ClienteObserver c2 = new ClienteObserver("Luis");
+
+        laptop.attach(c1);
+        laptop.attach(c2);
+
+        System.out.println("=== Simulando reabastecimiento ===");
+        laptop.setEnStock(true);
+
+        // --- Strategy + Command ---
+        System.out.println("\n=== Compras con diferentes envíos ===");
+        GestorComandos gestor = new GestorComandos();
+
+        ComprarProductoCommand compra1 = new ComprarProductoCommand(
+                laptop, new EnvioEstandar(), 2.5);
+        ComprarProductoCommand compra2 = new ComprarProductoCommand(
+                laptop, new EnvioExpress(), 2.5);
+        ComprarProductoCommand compra3 = new ComprarProductoCommand(
+                laptop, new EnvioInternacional(), 2.5);
+
+        gestor.ejecutarComando(compra1);
+        gestor.ejecutarComando(compra2);
+        gestor.ejecutarComando(compra3);
+
+        System.out.println("\n=== Deshaciendo la última compra ===");
+        gestor.deshacerUltimo();
+    }
+}
