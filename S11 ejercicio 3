@@ -1,0 +1,277 @@
+package laboratorio13;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
+
+// ============================================================
+// EJERCICIO 3: Sistema de Gestión de Pedidos de un Restaurante
+// Combina los patrones: Observer + Strategy + Command + Memento
+// ============================================================
+
+// ---------- PATRÓN OBSERVER ----------
+interface Observer {
+    void update(String estadoPedido, String detalle);
+}
+
+class CocinaObserver implements Observer {
+    @Override
+    public void update(String estadoPedido, String detalle) {
+        System.out.println("[COCINA] Estado: " + estadoPedido + " | " + detalle);
+    }
+}
+
+class ClienteObserver implements Observer {
+    private String nombre;
+
+    public ClienteObserver(String nombre) {
+        this.nombre = nombre;
+    }
+
+    @Override
+    public void update(String estadoPedido, String detalle) {
+        System.out.println("[CLIENTE " + nombre + "] Estado: " + estadoPedido + " | " + detalle);
+    }
+}
+
+// ---------- PATRÓN MEMENTO ----------
+class PedidoMemento {
+    private final List<String> platos;
+    private final String estado;
+
+    public PedidoMemento(List<String> platos, String estado) {
+        // Copia defensiva para no compartir la misma lista
+        this.platos = new ArrayList<>(platos);
+        this.estado = estado;
+    }
+
+    public List<String> getPlatos() {
+        return new ArrayList<>(platos);
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+}
+
+// ---------- PATRÓN STRATEGY ----------
+interface CostoStrategy {
+    double calcular(double subtotal);
+    String getDescripcion();
+}
+
+class SinPropina implements CostoStrategy {
+    @Override
+    public double calcular(double subtotal) { return subtotal; }
+    @Override
+    public String getDescripcion() { return "Sin propina"; }
+}
+
+class PropinaDiez implements CostoStrategy {
+    @Override
+    public double calcular(double subtotal) { return subtotal * 1.10; }
+    @Override
+    public String getDescripcion() { return "Propina 10%"; }
+}
+
+class PropinaQuince implements CostoStrategy {
+    @Override
+    public double calcular(double subtotal) { return subtotal * 1.15; }
+    @Override
+    public String getDescripcion() { return "Propina 15%"; }
+}
+
+class ClienteFrecuente implements CostoStrategy {
+    @Override
+    public double calcular(double subtotal) { return subtotal * 0.85; }
+    @Override
+    public String getDescripcion() { return "Descuento cliente frecuente (15%)"; }
+}
+
+// ---------- PATRÓN COMMAND + MEMENTO ----------
+interface Command {
+    void execute();
+    void undo();
+}
+
+// El Pedido es el "Receiver" y también el "Originator" del Memento
+class Pedido {
+    private String codigo;
+    private List<String> platos = new ArrayList<>();
+    private String estado = "PENDIENTE";
+    private double subtotal = 0.0;
+    private List<Observer> observadores = new ArrayList<>();
+
+    public Pedido(String codigo) {
+        this.codigo = codigo;
+    }
+
+    public void attach(Observer o) { observadores.add(o); }
+    public void detach(Observer o) { observadores.remove(o); }
+
+    public void agregarPlato(String plato, double precio) {
+        platos.add(plato + " (S/ " + precio + ")");
+        subtotal += precio;
+    }
+
+    public void cambiarEstado(String nuevoEstado) {
+        this.estado = nuevoEstado;
+        notificar("Pedido " + codigo + " con " + platos.size() + " plato(s)");
+    }
+
+    private void notificar(String detalle) {
+        for (Observer o : observadores) {
+            o.update(estado, detalle);
+        }
+    }
+
+    // --- Memento: guardar y restaurar ---
+    public PedidoMemento guardar() {
+        return new PedidoMemento(platos, estado);
+    }
+
+    public void restaurar(PedidoMemento m) {
+        this.platos = m.getPlatos();
+        this.estado = m.getEstado();
+        recalcularSubtotal();
+    }
+
+    private void recalcularSubtotal() {
+        subtotal = 0.0;
+        for (String p : platos) {
+            int ini = p.lastIndexOf("S/ ") + 3;
+            int fin = p.lastIndexOf(")");
+            subtotal += Double.parseDouble(p.substring(ini, fin));
+        }
+    }
+
+    public double calcularTotal(CostoStrategy estrategia) {
+        return estrategia.calcular(subtotal);
+    }
+
+    public String getCodigo() { return codigo; }
+    public List<String> getPlatos() { return platos; }
+    public String getEstado() { return estado; }
+    public double getSubtotal() { return subtotal; }
+}
+
+// Comando concreto: agregar un plato (guarda Memento antes)
+class AgregarPlatoCommand implements Command {
+    private Pedido pedido;
+    private String plato;
+    private double precio;
+    private PedidoMemento backup;
+
+    public AgregarPlatoCommand(Pedido pedido, String plato, double precio) {
+        this.pedido = pedido;
+        this.plato = plato;
+        this.precio = precio;
+    }
+
+    @Override
+    public void execute() {
+        backup = pedido.guardar();
+        pedido.agregarPlato(plato, precio);
+        System.out.println(">> Agregado: " + plato + " (S/ " + precio + ")");
+    }
+
+    @Override
+    public void undo() {
+        if (backup != null) {
+            pedido.restaurar(backup);
+            System.out.println("<< Deshecho: se quitó " + plato);
+        }
+    }
+}
+
+// Comando concreto: cambiar estado del pedido
+class CambiarEstadoCommand implements Command {
+    private Pedido pedido;
+    private String nuevoEstado;
+    private PedidoMemento backup;
+
+    public CambiarEstadoCommand(Pedido pedido, String nuevoEstado) {
+        this.pedido = pedido;
+        this.nuevoEstado = nuevoEstado;
+    }
+
+    @Override
+    public void execute() {
+        backup = pedido.guardar();
+        pedido.cambiarEstado(nuevoEstado);
+    }
+
+    @Override
+    public void undo() {
+        if (backup != null) {
+            pedido.restaurar(backup);
+            System.out.println("<< Deshecho: estado restaurado a " + pedido.getEstado());
+        }
+    }
+}
+
+// Invoker
+class GestorPedidos {
+    private Stack<Command> historial = new Stack<>();
+
+    public void ejecutar(Command c) {
+        c.execute();
+        historial.push(c);
+    }
+
+    public void deshacerUltimo() {
+        if (!historial.isEmpty()) {
+            historial.pop().undo();
+        } else {
+            System.out.println("No hay acciones para deshacer.");
+        }
+    }
+}
+
+// ---------- CLASE PRINCIPAL ----------
+public class ejercicio3 {
+    public static void main(String[] args) {
+        // 1. Crear el pedido (Receiver/Originator)
+        Pedido pedido = new Pedido("P-2024-001");
+
+        // 2. Registrar observadores
+        CocinaObserver cocina = new CocinaObserver();
+        ClienteObserver cliente = new ClienteObserver("María");
+        pedido.attach(cocina);
+        pedido.attach(cliente);
+
+        // 3. Invocador
+        GestorPedidos gestor = new GestorPedidos();
+
+        System.out.println("=== 1) Tomando el pedido ===");
+        gestor.ejecutar(new AgregarPlatoCommand(pedido, "Lomo Saltado", 28.0));
+        gestor.ejecutar(new AgregarPlatoCommand(pedido, "Inca Kola", 8.0));
+        gestor.ejecutar(new AgregarPlatoCommand(pedido, "Suspiro Limeño", 12.0));
+
+        System.out.println("\n=== 2) Cambiando estados ===");
+        gestor.ejecutar(new CambiarEstadoCommand(pedido, "EN_PREPARACION"));
+        gestor.ejecutar(new CambiarEstadoCommand(pedido, "LISTO"));
+        gestor.ejecutar(new CambiarEstadoCommand(pedido, "ENTREGADO"));
+
+        System.out.println("\n=== 3) Aplicando estrategias de cobro ===");
+        CostoStrategy sinPropina = new SinPropina();
+        CostoStrategy propina10 = new PropinaDiez();
+        CostoStrategy propina15 = new PropinaQuince();
+        CostoStrategy frecuente = new ClienteFrecuente();
+
+        System.out.println("Subtotal: S/ " + pedido.getSubtotal());
+        System.out.println("  " + sinPropina.getDescripcion() + ": S/ " + pedido.calcularTotal(sinPropina));
+        System.out.println("  " + propina10.getDescripcion() + ": S/ " + pedido.calcularTotal(propina10));
+        System.out.println("  " + propina15.getDescripcion() + ": S/ " + pedido.calcularTotal(propina15));
+        System.out.println("  " + frecuente.getDescripcion() + ": S/ " + pedido.calcularTotal(frecuente));
+
+        System.out.println("\n=== 4) Deshaciendo acciones ===");
+        gestor.deshacerUltimo(); // Deshace ENTREGADO
+        gestor.deshacerUltimo(); // Deshace LISTO
+        gestor.deshacerUltimo(); // Deshace el último plato (Suspiro Limeño)
+
+        System.out.println("\nPlatos actuales: " + pedido.getPlatos());
+        System.out.println("Estado actual: " + pedido.getEstado());
+        System.out.println("Nuevo subtotal: S/ " + pedido.getSubtotal());
+    }
+}
