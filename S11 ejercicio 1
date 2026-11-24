@@ -2,197 +2,190 @@ package laboratorio11;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack;
+import java.util.Scanner;
 
 // ============================================================
-// EJERCICIO 1: Sistema de Notificaciones de una Tienda Online
-// Combina los patrones: Observer + Strategy + Command
+// EJERCICIO 1: Sistema de Notificaciones (Patrón Observer)
 // ============================================================
 
-// ---------- PATRÓN OBSERVER ----------
-interface Observer {
-    void update(String mensaje);
+// 1. La Interfaz Observer
+interface Observador {
+    void actualizar(Notificacion notificacion);
 }
 
-class ClienteObserver implements Observer {
+// Clase Notificación (El mensaje que viaja)
+class Notificacion {
+    private String tipo; // "Promoción", "Actualización", etc.
+    private String mensaje;
+
+    public Notificacion(String tipo, String mensaje) {
+        this.tipo = tipo;
+        this.mensaje = mensaje;
+    }
+
+    public String getTipo() { return tipo; }
+    public String getMensaje() { return mensaje; }
+
+    @Override
+    public String toString() {
+        return "[" + tipo.toUpperCase() + "] " + mensaje;
+    }
+}
+
+// 2. El Sujeto (Subject) - La Tienda o Central de Notificaciones
+class CentralDeNotificaciones {
+    private List<Observador> suscriptores = new ArrayList<>();
+
+    // Suscribir
+    public void suscribir(Observador o) {
+        if (!suscriptores.contains(o)) {
+            suscriptores.add(o);
+            System.out.println("Suscripción exitosa.");
+        } else {
+            System.out.println("Ya estás suscrito.");
+        }
+    }
+
+    // Desuscribir
+    public void desuscribir(Observador o) {
+        if (suscriptores.remove(o)) {
+            System.out.println("Te has dado de baja de las notificaciones.");
+        } else {
+            System.out.println("No estabas suscrito.");
+        }
+    }
+
+    // Notificar a todos
+    public void enviarNotificacion(Notificacion n) {
+        if (suscriptores.isEmpty()) {
+            System.out.println("No hay usuarios suscritos para notificar.");
+            return;
+        }
+        System.out.println("\nEnviando notificación a " + suscriptores.size() + " usuario(s)...");
+        for (Observador o : suscriptores) {
+            o.actualizar(n);
+        }
+    }
+    
+    public int getCantidadSuscriptores() {
+        return suscriptores.size();
+    }
+}
+
+// 3. El Observador Concreto (Usuario)
+class Usuario implements Observador {
     private String nombre;
 
-    public ClienteObserver(String nombre) {
+    public Usuario(String nombre) {
         this.nombre = nombre;
     }
 
+    public String getNombre() { return nombre; }
+
     @Override
-    public void update(String mensaje) {
-        System.out.println("[NOTIFICACIÓN] " + nombre + ": " + mensaje);
+    public void actualizar(Notificacion notificacion) {
+        // Aquí el usuario recibe el mensaje de forma automática
+        System.out.println("  -> " + nombre + " recibió: " + notificacion.toString());
+    }
+    
+    @Override
+    public String toString() {
+        return nombre;
     }
 }
 
-class ProductoSubject {
-    private String nombreProducto;
-    private boolean enStock;
-    private List<Observer> observadores = new ArrayList<>();
-
-    public ProductoSubject(String nombreProducto) {
-        this.nombreProducto = nombreProducto;
-        this.enStock = false;
-    }
-
-    public void attach(Observer o) {
-        observadores.add(o);
-    }
-
-    public void detach(Observer o) {
-        observadores.remove(o);
-    }
-
-    public void setEnStock(boolean enStock) {
-        this.enStock = enStock;
-        if (enStock) {
-            notifyObservers("El producto '" + nombreProducto + "' ya está disponible!");
-        }
-    }
-
-    private void notifyObservers(String mensaje) {
-        for (Observer o : observadores) {
-            o.update(mensaje);
-        }
-    }
-
-    public String getNombreProducto() {
-        return nombreProducto;
-    }
-}
-
-// ---------- PATRÓN STRATEGY ----------
-interface EnvioStrategy {
-    double calcularCosto(double pesoKg);
-    String getDescripcion();
-}
-
-class EnvioEstandar implements EnvioStrategy {
-    @Override
-    public double calcularCosto(double pesoKg) {
-        return 5.0 + (pesoKg * 1.0);
-    }
-
-    @Override
-    public String getDescripcion() {
-        return "Envío Estándar (5-7 días)";
-    }
-}
-
-class EnvioExpress implements EnvioStrategy {
-    @Override
-    public double calcularCosto(double pesoKg) {
-        return 15.0 + (pesoKg * 2.5);
-    }
-
-    @Override
-    public String getDescripcion() {
-        return "Envío Express (1-2 días)";
-    }
-}
-
-class EnvioInternacional implements EnvioStrategy {
-    @Override
-    public double calcularCosto(double pesoKg) {
-        return 50.0 + (pesoKg * 8.0);
-    }
-
-    @Override
-    public String getDescripcion() {
-        return "Envío Internacional (10-15 días)";
-    }
-}
-
-// ---------- PATRÓN COMMAND ----------
-interface Command {
-    void execute();
-    void undo();
-}
-
-class ComprarProductoCommand implements Command {
-    private ProductoSubject producto;
-    private EnvioStrategy envio;
-    private double pesoKg;
-    private boolean ejecutado = false;
-    private double costoTotal;
-
-    public ComprarProductoCommand(ProductoSubject producto, EnvioStrategy envio, double pesoKg) {
-        this.producto = producto;
-        this.envio = envio;
-        this.pesoKg = pesoKg;
-    }
-
-    @Override
-    public void execute() {
-        costoTotal = envio.calcularCosto(pesoKg);
-        System.out.println("Compra realizada: " + producto.getNombreProducto());
-        System.out.println("  Tipo: " + envio.getDescripcion());
-        System.out.println("  Peso: " + pesoKg + " kg");
-        System.out.println("  Costo de envío: S/ " + costoTotal);
-        ejecutado = true;
-    }
-
-    @Override
-    public void undo() {
-        if (ejecutado) {
-            System.out.println("Compra deshecha: " + producto.getNombreProducto()
-                    + " | Reembolso: S/ " + costoTotal);
-            ejecutado = false;
-        } else {
-            System.out.println("No hay compra que deshacer para " + producto.getNombreProducto());
-        }
-    }
-}
-
-class GestorComandos {
-    private Stack<Command> historial = new Stack<>();
-
-    public void ejecutarComando(Command c) {
-        c.execute();
-        historial.push(c);
-    }
-
-    public void deshacerUltimo() {
-        if (!historial.isEmpty()) {
-            historial.pop().undo();
-        } else {
-            System.out.println("No hay comandos para deshacer.");
-        }
-    }
-}
-
-// ---------- CLASE PRINCIPAL ----------
+// 4. Clase Principal (Menú Interactivo)
 public class ejercicio1 {
     public static void main(String[] args) {
-        // --- Observer ---
-        ProductoSubject laptop = new ProductoSubject("Laptop Gamer XYZ");
-        ClienteObserver c1 = new ClienteObserver("Ana");
-        ClienteObserver c2 = new ClienteObserver("Luis");
+        Scanner scanner = new Scanner(System.in);
+        CentralDeNotificaciones central = new CentralDeNotificaciones();
+        
+        // Creamos algunos usuarios de prueba
+        Usuario u1 = new Usuario("Ana");
+        Usuario u2 = new Usuario("Luis");
+        Usuario u3 = new Usuario("María");
+        
+        int opcion = 0;
 
-        laptop.attach(c1);
-        laptop.attach(c2);
-
-        System.out.println("=== Simulando reabastecimiento ===");
-        laptop.setEnStock(true);
-
-        // --- Strategy + Command ---
-        System.out.println("\n=== Compras con diferentes envíos ===");
-        GestorComandos gestor = new GestorComandos();
-
-        ComprarProductoCommand compra1 = new ComprarProductoCommand(
-                laptop, new EnvioEstandar(), 2.5);
-        ComprarProductoCommand compra2 = new ComprarProductoCommand(
-                laptop, new EnvioExpress(), 2.5);
-        ComprarProductoCommand compra3 = new ComprarProductoCommand(
-                laptop, new EnvioInternacional(), 2.5);
-
-        gestor.ejecutarComando(compra1);
-        gestor.ejecutarComando(compra2);
-        gestor.ejecutarComando(compra3);
-
-        System.out.println("\n=== Deshaciendo la última compra ===");
-        gestor.deshacerUltimo();
+        while (opcion != 6) {
+            System.out.println("\n=========================================");
+            System.out.println("   SISTEMA DE NOTIFICACIONES (OBSERVER)");
+            System.out.println("=========================================");
+            System.out.println("Suscriptores actuales: " + central.getCantidadSuscriptores());
+            System.out.println("-----------------------------------------");
+            System.out.println("1. Suscribir a un usuario");
+            System.out.println("2. Desuscribir a un usuario");
+            System.out.println("3. Enviar notificación de Promoción");
+            System.out.println("4. Enviar notificación de Actualización");
+            System.out.println("5. Ver usuarios registrados");
+            System.out.println("6. Salir");
+            System.out.print("Opción: ");
+            
+            try {
+                opcion = scanner.nextInt();
+                scanner.nextLine(); // Limpiar buffer
+                
+                switch (opcion) {
+                    case 1:
+                        System.out.print("¿A quién deseas suscribir? (Ana, Luis, María): ");
+                        String nombreSuscribir = scanner.nextLine();
+                        if (nombreSuscribir.equalsIgnoreCase("Ana")) {
+                            central.suscribir(u1);
+                        } else if (nombreSuscribir.equalsIgnoreCase("Luis")) {
+                            central.suscribir(u2);
+                        } else if (nombreSuscribir.equalsIgnoreCase("María")) {
+                            central.suscribir(u3);
+                        } else {
+                            System.out.println("Usuario no encontrado.");
+                        }
+                        break;
+                        
+                    case 2:
+                        System.out.print("¿A quién deseas desuscribir? (Ana, Luis, María): ");
+                        String nombreDesuscribir = scanner.nextLine();
+                        if (nombreDesuscribir.equalsIgnoreCase("Ana")) {
+                            central.desuscribir(u1);
+                        } else if (nombreDesuscribir.equalsIgnoreCase("Luis")) {
+                            central.desuscribir(u2);
+                        } else if (nombreDesuscribir.equalsIgnoreCase("María")) {
+                            central.desuscribir(u3);
+                        } else {
+                            System.out.println("Usuario no encontrado.");
+                        }
+                        break;
+                        
+                    case 3:
+                        System.out.print("Escribe el mensaje de la promoción: ");
+                        String mensajePromo = scanner.nextLine();
+                        central.enviarNotificacion(new Notificacion("Promoción", mensajePromo));
+                        break;
+                        
+                    case 4:
+                        System.out.print("Escribe el mensaje de la actualización: ");
+                        String mensajeAct = scanner.nextLine();
+                        central.enviarNotificacion(new Notificacion("Actualización", mensajeAct));
+                        break;
+                        
+                    case 5:
+                        System.out.println("Usuarios registrados en el sistema:");
+                        System.out.println(" - " + u1);
+                        System.out.println(" - " + u2);
+                        System.out.println(" - " + u3);
+                        break;
+                        
+                    case 6:
+                        System.out.println("Saliendo del sistema... ¡Hasta luego!");
+                        break;
+                        
+                    default:
+                        System.out.println("Opción inválida. Intente de nuevo.");
+                }
+            } catch (Exception e) {
+                System.out.println("Error: Por favor ingrese un número válido.");
+                scanner.nextLine(); // Limpiar buffer si escribió letras
+                opcion = 0;
+            }
+        }
+        scanner.close();
     }
 }
