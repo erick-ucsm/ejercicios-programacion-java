@@ -1,0 +1,86 @@
+package prac11;
+
+import java.util.ArrayList;
+import java.util.List;
+
+interface Observador {
+    void actualizar(String mensaje);
+}
+
+interface Sujeto {
+    void suscribir(Observador o);
+    void desuscribir(Observador o);
+    void notificar(String mensaje);
+}
+
+class Usuario implements Observador {
+    private String nombre;
+    private List<String> bandeja = new ArrayList<>();
+
+    public Usuario(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    @Override
+    public void actualizar(String mensaje) {
+        bandeja.add(mensaje);
+        System.out.println("  [" + nombre + "] recibió: " + mensaje);
+    }
+
+    public void mostrarBandeja() {
+        System.out.println("Bandeja de " + nombre + " (" + bandeja.size() + " notificaciones):");
+        for (String m : bandeja) {
+            System.out.println("  - " + m);
+        }
+    }
+}
+
+class CentroNotificaciones implements Sujeto {
+    private List<Observador> observadores = new ArrayList<>();
+
+    @Override
+    public void suscribir(Observador o) {
+        if (!observadores.contains(o)) {
+            observadores.add(o);
+        }
+    }
+
+    @Override
+    public void desuscribir(Observador o) {
+        observadores.remove(o);
+    }
+
+    @Override
+    public void notificar(String mensaje) {
+        for (Observador o : observadores) {
+            o.actualizar(mensaje);
+        }
+    }
+
+    public void publicarEvento(String tipo, String detalle) {
+        System.out.println("\nEvento publicado -> " + tipo + ": " + detalle);
+        notificar(tipo + ": " + detalle);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        CentroNotificaciones centro = new CentroNotificaciones();
+        Usuario ana = new Usuario("Ana");
+        Usuario luis = new Usuario("Luis");
+        Usuario maria = new Usuario("María");
+
+        centro.suscribir(ana);
+        centro.suscribir(luis);
+        centro.suscribir(maria);
+        centro.publicarEvento("PROMOCIÓN", "30% en laptops este fin de semana");
+
+        centro.desuscribir(luis);
+        centro.publicarEvento("STOCK", "Volvió el mouse inalámbrico");
+
+        centro.suscribir(luis);
+        centro.publicarEvento("ACT
