@@ -1,0 +1,211 @@
+package prac11;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
+
+class Televisor {
+    private boolean encendido = false;
+    private int volumen = 10;
+    private int canal = 1;
+    private boolean silencio = false;
+
+    public void encender() {
+        encendido = true;
+        System.out.println("TV encendido");
+    }
+
+    public void apagar() {
+        encendido = false;
+        System.out.println("TV apagado");
+    }
+
+    public boolean isEncendido() {
+        return encendido;
+    }
+
+    public int getVolumen() {
+        return volumen;
+    }
+
+    public void setVolumen(int volumen) {
+        if (!encendido) {
+            System.out.println("El TV está apagado");
+            return;
+        }
+        this.volumen = Math.max(0, Math.min(100, volumen));
+        System.out.println("Volumen: " + this.volumen);
+    }
+
+    public int getCanal() {
+        return canal;
+    }
+
+    public void setCanal(int canal) {
+        if (!encendido) {
+            System.out.println("El TV está apagado");
+            return;
+        }
+        this.canal = canal < 1 ? 1 : canal;
+        System.out.println("Canal: " + this.canal);
+    }
+
+    public boolean isSilencio() {
+        return silencio;
+    }
+
+    public void setSilencio(boolean silencio) {
+        if (!encendido) {
+            System.out.println("El TV está apagado");
+            return;
+        }
+        this.silencio = silencio;
+        System.out.println(silencio ? "Silencio activado" : "Silencio desactivado");
+    }
+}
+
+interface Comando {
+    void ejecutar();
+    void deshacer();
+}
+
+class EncenderApagar implements Comando {
+    private Televisor tv;
+
+    public EncenderApagar(Televisor tv) {
+        this.tv = tv;
+    }
+
+    @Override
+    public void ejecutar() {
+        if (tv.isEncendido()) {
+            tv.apagar();
+        } else {
+            tv.encender();
+        }
+    }
+
+    @Override
+    public void deshacer() {
+        ejecutar();
+    }
+}
+
+class SubirVolumen implements Comando {
+    private Televisor tv;
+    private int anterior;
+
+    public SubirVolumen(Televisor tv) {
+        this.tv = tv;
+    }
+
+    @Override
+    public void ejecutar() {
+        anterior = tv.getVolumen();
+        tv.setVolumen(anterior + 1);
+    }
+
+    @Override
+    public void deshacer() {
+        tv.setVolumen(anterior);
+    }
+}
+
+class BajarVolumen implements Comando {
+    private Televisor tv;
+    private int anterior;
+
+    public BajarVolumen(Televisor tv) {
+        this.tv = tv;
+    }
+
+    @Override
+    public void ejecutar() {
+        anterior = tv.getVolumen();
+        tv.setVolumen(anterior - 1);
+    }
+
+    @Override
+    public void deshacer() {
+        tv.setVolumen(anterior);
+    }
+}
+
+class CambiarCanal implements Comando {
+    private Televisor tv;
+    private int nuevo;
+    private int anterior;
+
+    public CambiarCanal(Televisor tv, int nuevo) {
+        this.tv = tv;
+        this.nuevo = nuevo;
+    }
+
+    @Override
+    public void ejecutar() {
+        anterior = tv.getCanal();
+        tv.setCanal(nuevo);
+    }
+
+    @Override
+    public void deshacer() {
+        tv.setCanal(anterior);
+    }
+}
+
+class Silenciar implements Comando {
+    private Televisor tv;
+
+    public Silenciar(Televisor tv) {
+        this.tv = tv;
+    }
+
+    @Override
+    public void ejecutar() {
+        tv.setSilencio(!tv.isSilencio());
+    }
+
+    @Override
+    public void deshacer() {
+        tv.setSilencio(!tv.isSilencio());
+    }
+}
+
+class ControlRemoto {
+    private Deque<Comando> historial = new ArrayDeque<>();
+
+    public void presionar(Comando comando) {
+        comando.ejecutar();
+        historial.push(comando);
+    }
+
+    public void deshacer() {
+        if (historial.isEmpty()) {
+            System.out.println("Nada que deshacer");
+            return;
+        }
+        System.out.print("Deshacer -> ");
+        historial.pop().deshacer();
+    }
+}
+
+public class Main3 {
+    public static void main(String[] args) {
+        Televisor tv = new Televisor();
+        ControlRemoto control = new ControlRemoto();
+
+        control.presionar(new EncenderApagar(tv));
+        control.presionar(new SubirVolumen(tv));
+        control.presionar(new SubirVolumen(tv));
+        control.presionar(new BajarVolumen(tv));
+        control.presionar(new CambiarCanal(tv, 7));
+        control.presionar(new CambiarCanal(tv, 13));
+        control.presionar(new Silenciar(tv));
+
+        control.deshacer();
+        control.deshacer();
+        control.deshacer();
+
+        control.presionar(new EncenderApagar(tv));
+        control.presionar(new SubirVolumen(tv));
+    }
+}
