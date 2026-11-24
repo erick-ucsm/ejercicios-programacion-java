@@ -1,0 +1,297 @@
+package prac11;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+import java.util.Scanner;
+
+public class Main4 {
+
+    static interface Observador {
+        void actualizar(String mensaje);
+    }
+
+    static class Cliente implements Observador {
+        private String nombre;
+
+        public Cliente(String nombre) {
+            this.nombre = nombre;
+        }
+
+        @Override
+        public void actualizar(String mensaje) {
+            System.out.println("  [Notificación a " + nombre + "] " + mensaje);
+        }
+    }
+
+    static class Producto {
+        private String nombre;
+        private double precio;
+
+        public Producto(String nombre, double precio) {
+            this.nombre = nombre;
+            this.precio = precio;
+        }
+
+        public String getNombre() {
+            return nombre;
+        }
+
+        public double getPrecio() {
+            return precio;
+        }
+    }
+
+    static interface EstrategiaDescuento {
+        double aplicar(double total);
+        String getNombre();
+    }
+
+    static class SinDescuento implements EstrategiaDescuento {
+        @Override
+        public double aplicar(double total) {
+            return total;
+        }
+
+        @Override
+        public String getNombre() {
+            return "Sin descuento";
+        }
+    }
+
+    static class DescuentoEstudiante implements EstrategiaDescuento {
+        @Override
+        public double aplicar(double total) {
+            return total * 0.85;
+        }
+
+        @Override
+        public String getNombre() {
+            return "Descuento estudiante (15%)";
+        }
+    }
+
+    static class DescuentoCyber implements EstrategiaDescuento {
+        @Override
+        public double aplicar(double total) {
+            return total * 0.70;
+        }
+
+        @Override
+        public String getNombre() {
+            return "Cyber Day (30%)";
+        }
+    }
+
+    static class Carrito {
+        private List<Producto> productos = new ArrayList<>();
+        private List<Observador> observadores = new ArrayList<>();
+        private EstrategiaDescuento estrategia = new SinDescuento();
+
+        public void suscribir(Observador o) {
+            observadores.add(o);
+        }
+
+        public void desuscribir(Observador o) {
+            observadores.remove(o);
+        }
+
+        private void notificar(String mensaje) {
+            for (Observador o : observadores) {
+                o.actualizar(mensaje);
+            }
+        }
+
+        public void agregar(Producto p) {
+            productos.add(p);
+            notificar("Se agregó " + p.getNombre() + ". Total: S/ " + String.format("%.2f", getTotal()));
+        }
+
+        public void quitar(Producto p) {
+            productos.remove(p);
+            notificar("Se quitó " + p.getNombre() + ". Total: S/ " + String.format("%.2f", getTotal()));
+        }
+
+        public EstrategiaDescuento getEstrategia() {
+            return estrategia;
+        }
+
+        public void setEstrategia(EstrategiaDescuento estrategia) {
+            this.estrategia = estrategia;
+            notificar("Descuento aplicado: " + estrategia.getNombre() + ". Total: S/ " + String.format("%.2f", getTotal()));
+        }
+
+        public double getSubtotal() {
+            double suma = 0;
+            for (Producto p : productos) {
+                suma += p.getPrecio();
+            }
+            return suma;
+        }
+
+        public double getTotal() {
+            return estrategia.aplicar(getSubtotal());
+        }
+
+        public void mostrar() {
+            System.out.println("Carrito:");
+            if (productos.isEmpty()) {
+                System.out.println("  (vacío)");
+            }
+            for (Producto p : productos) {
+                System.out.printf("  - %-12s S/ %.2f%n", p.getNombre(), p.getPrecio());
+            }
+            System.out.printf("Subtotal: S/ %.2f | %s | Total: S/ %.2f%n", getSubtotal(), estrategia.getNombre(), getTotal());
+        }
+
+        public void pagar() {
+            notificar("Compra confirmada por S/ " + String.format("%.2f", getTotal()));
+            productos.clear();
+        }
+    }
+
+    static interface Comando {
+        void ejecutar();
+        void deshacer();
+    }
+
+    static class AgregarProducto implements Comando {
+        private Carrito carrito;
+        private Producto producto;
+
+        public AgregarProducto(Carrito carrito, Producto producto) {
+            this.carrito = carrito;
+            this.producto = producto;
+        }
+
+        @Override
+        public void ejecutar() {
+            carrito.agregar(producto);
+        }
+
+        @Override
+        public void deshacer() {
+            carrito.quitar(producto);
+        }
+    }
+
+    static class CambiarDescuento implements Comando {
+        private Carrito carrito;
+        private EstrategiaDescuento nueva;
+        private EstrategiaDescuento anterior;
+
+        public CambiarDescuento(Carrito carrito, EstrategiaDescuento nueva) {
+            this.carrito = carrito;
+            this.nueva = nueva;
+        }
+
+        @Override
+        public void ejecutar() {
+            anterior = carrito.getEstrategia();
+            carrito.setEstrategia(nueva);
+        }
+
+        @Override
+        public void deshacer() {
+            carrito.setEstrategia(anterior);
+        }
+    }
+
+    static class Tienda {
+        private Deque<Comando> historial = new ArrayDeque<>();
+
+        public void ejecutar(Comando c) {
+            c.ejecutar();
+            historial.push(c);
+        }
+
+        public void deshacer() {
+            if (historial.isEmpty()) {
+                System.out.println("Nada que deshacer");
+            } else {
+                historial.pop().deshacer();
+            }
+        }
+
+        public void limpiarHistorial() {
+            historial.clear();
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        Carrito carrito = new Carrito();
+        Tienda tienda = new Tienda();
+        carrito.suscribir(new Cliente("Rohit"));
+        carrito.suscribir(new Cliente("Almacén"));
+
+        Producto[] catalogo = {
+            new Producto("Laptop", 2500.00),
+            new Producto("Mouse", 45.00),
+            new Producto("Teclado", 120.00),
+            new Producto("Monitor", 650.00)
+        };
+        EstrategiaDescuento[] descuentos = {
+            new SinDescuento(),
+            new DescuentoEstudiante(),
+            new DescuentoCyber()
+        };
+
+        int opcion;
+        do {
+            System.out.println("\n===== TIENDA =====");
+            System.out.println("1. Agregar producto");
+            System.out.println("2. Elegir descuento");
+            System.out.println("3. Deshacer última acción");
+            System.out.println("4. Ver carrito");
+            System.out.println("5. Pagar");
+            System.out.println("0. Salir");
+            System.out.print("Opción: ");
+            opcion = sc.nextInt();
+
+            switch (opcion) {
+                case 1:
+                    for (int i = 0; i < catalogo.length; i++) {
+                        System.out.printf("  %d. %-10s S/ %.2f%n", i + 1, catalogo[i].getNombre(), catalogo[i].getPrecio());
+                    }
+                    System.out.print("Producto: ");
+                    int p = sc.nextInt() - 1;
+                    if (p >= 0 && p < catalogo.length) {
+                        tienda.ejecutar(new AgregarProducto(carrito, catalogo[p]));
+                    } else {
+                        System.out.println("Producto inválido");
+                    }
+                    break;
+                case 2:
+                    for (int i = 0; i < descuentos.length; i++) {
+                        System.out.println("  " + (i + 1) + ". " + descuentos[i].getNombre());
+                    }
+                    System.out.print("Descuento: ");
+                    int d = sc.nextInt() - 1;
+                    if (d >= 0 && d < descuentos.length) {
+                        tienda.ejecutar(new CambiarDescuento(carrito, descuentos[d]));
+                    } else {
+                        System.out.println("Descuento inválido");
+                    }
+                    break;
+                case 3:
+                    tienda.deshacer();
+                    break;
+                case 4:
+                    carrito.mostrar();
+                    break;
+                case 5:
+                    carrito.pagar();
+                    tienda.limpiarHistorial();
+                    break;
+                case 0:
+                    System.out.println("Gracias por su compra");
+                    break;
+                default:
+                    System.out.println("Opción inválida");
+            }
+        } while (opcion != 0);
+        sc.close();
+    }
+}
