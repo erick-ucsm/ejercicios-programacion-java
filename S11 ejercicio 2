@@ -1,151 +1,247 @@
 package laboratorio12;
 
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 // ============================================================
-// EJERCICIO 2: Videojuego de Estrategia con Personajes
-// Combina los patrones: Observer + Strategy + Command
+// EJERCICIO: Estrategias de Descuento (Patrón Strategy)
 // ============================================================
 
-// ---------- PATRÓN OBSERVER ----------
-interface Observer {
-    void update(String nombrePersonaje, int vidaActual);
-}
-
-class HUDObserver implements Observer {
-    @Override
-    public void update(String nombrePersonaje, int vidaActual) {
-        System.out.println("[HUD] " + nombrePersonaje + " → Vida: " + vidaActual);
-    }
-}
-
-class Personaje {
-    private String nombre;
-    private int vida;
-    private List<Observer> observadores = new ArrayList<>();
-
-    public Personaje(String nombre, int vida) {
-        this.nombre = nombre;
-        this.vida = vida;
-    }
-
-    public void attach(Observer o) { observadores.add(o); }
-    public void detach(Observer o) { observadores.remove(o); }
-
-    public void recibirDanio(int danio) {
-        vida = Math.max(0, vida - danio);
-        notificar();
-    }
-
-    public void curar(int cantidad) {
-        vida += cantidad;
-        notificar();
-    }
-
-    private void notificar() {
-        for (Observer o : observadores) {
-            o.update(nombre, vida);
-        }
-    }
-
-    public String getNombre() { return nombre; }
-    public int getVida() { return vida; }
-}
-
-// ---------- PATRÓN STRATEGY ----------
-interface AtaqueStrategy {
-    int atacar();
+// 1. Interfaz Strategy
+interface DescuentoStrategy {
+    double calcularPrecioFinal(List<Producto> productos);
     String getNombre();
 }
 
-class AtaqueEspada implements AtaqueStrategy {
-    @Override
-    public int atacar() {
-        return 15 + (int)(Math.random() * 10);
+// Clase Producto (Representa un ítem en el carrito)
+class Producto {
+    private String nombre;
+    private double precio;
+
+    public Producto(String nombre, double precio) {
+        this.nombre = nombre;
+        this.precio = precio;
     }
-    @Override
-    public String getNombre() { return "Espada"; }
-}
 
-class AtaqueArco implements AtaqueStrategy {
+    public String getNombre() { return nombre; }
+    public double getPrecio() { return precio; }
+
     @Override
-    public int atacar() {
-        return 10 + (int)(Math.random() * 8);
+    public String toString() {
+        return nombre + " (S/ " + precio + ")";
     }
-    @Override
-    public String getNombre() { return "Arco"; }
 }
 
-class AtaqueMagia implements AtaqueStrategy {
+// 2. Implementaciones Concretas de las Estrategias
+
+// Estrategia 1: Sin Descuento
+class SinDescuento implements DescuentoStrategy {
     @Override
-    public int atacar() {
-        return 25 + (int)(Math.random() * 15);
+    public double calcularPrecioFinal(List<Producto> productos) {
+        double total = 0;
+        for (Producto p : productos) {
+            total += p.getPrecio();
+        }
+        return total;
     }
+
     @Override
-    public String getNombre() { return "Magia"; }
+    public String getNombre() { return "Sin Descuento"; }
 }
 
-// ---------- PATRÓN COMMAND ----------
-interface Command {
-    void execute();
+// Estrategia 2: Descuento Fijo (10%)
+class DescuentoFijo implements DescuentoStrategy {
+    @Override
+    public double calcularPrecioFinal(List<Producto> productos) {
+        double total = 0;
+        for (Producto p : productos) {
+            total += p.getPrecio();
+        }
+        // Se aplica el 10% de descuento al total
+        return total * 0.90;
+    }
+
+    @Override
+    public String getNombre() { return "Descuento Fijo (10% en total)"; }
 }
 
-class AtacarCommand implements Command {
-    private Personaje atacante;
-    private Personaje objetivo;
-    private AtaqueStrategy estrategia;
+// Estrategia 3: Descuento Porcentual (2 productos iguales -> 30%)
+class DescuentoPorcentual implements DescuentoStrategy {
+    @Override
+    public double calcularPrecioFinal(List<Producto> productos) {
+        double total = 0;
+        boolean descuentoAplicado = false;
+        
+        // Buscamos si hay al menos 2 productos con el mismo nombre
+        List<String> nombresProcesados = new ArrayList<>();
+        for (Producto p1 : productos) {
+            if (!nombresProcesados.contains(p1.getNombre())) {
+                int contador = 0;
+                for (Producto p2 : productos) {
+                    if (p1.getNombre().equals(p2.getNombre())) {
+                        contador++;
+                    }
+                }
+                if (contador >= 2) {
+                    descuentoAplicado = true;
+                }
+                nombresProcesados.add(p1.getNombre());
+            }
+        }
 
-    public AtacarCommand(Personaje atacante, Personaje objetivo, AtaqueStrategy estrategia) {
-        this.atacante = atacante;
-        this.objetivo = objetivo;
+        if (descuentoAplicado) {
+            // Si hay 2 productos iguales, aplicamos 30% al total
+            for (Producto p : productos) {
+                total += p.getPrecio();
+            }
+            return total * 0.70;
+        } else {
+            // Si no hay 2 iguales, se cobra el total normal
+            for (Producto p : productos) {
+                total += p.getPrecio();
+            }
+            return total;
+        }
+    }
+
+    @Override
+    public String getNombre() { return "Descuento 30% (2 productos iguales)"; }
+}
+
+// Estrategia 4: Descuento Porcentual Acumulado (3 productos -> 50% al más bajo)
+class DescuentoPorcentualAcumulado implements DescuentoStrategy {
+    @Override
+    public double calcularPrecioFinal(List<Producto> productos) {
+        double total = 0;
+        
+        if (productos.size() >= 3) {
+            // Encontrar el producto más barato
+            double precioMasBajo = Double.MAX_VALUE;
+            for (Producto p : productos) {
+                if (p.getPrecio() < precioMasBajo) {
+                    precioMasBajo = p.getPrecio();
+                }
+            }
+            
+            // Sumamos todos los precios
+            for (Producto p : productos) {
+                total += p.getPrecio();
+            }
+            
+            // Aplicamos el 50% de descuento solo al producto más bajo
+            double descuento = precioMasBajo * 0.50;
+            return total - descuento;
+        } else {
+            // Si hay menos de 3 productos, no hay descuento
+            for (Producto p : productos) {
+                total += p.getPrecio();
+            }
+            return total;
+        }
+    }
+
+    @Override
+    public String getNombre() { return "Descuento Acumulado (50% al más barato de 3)"; }
+}
+
+// 3. El Contexto (Calculadora)
+class CalculadoraDePrecios {
+    private DescuentoStrategy estrategia;
+
+    public void setEstrategia(DescuentoStrategy estrategia) {
         this.estrategia = estrategia;
     }
 
-    @Override
-    public void execute() {
-        int danio = estrategia.atacar();
-        System.out.println(atacante.getNombre() + " ataca con " + estrategia.getNombre()
-                + " a " + objetivo.getNombre() + " (daño: " + danio + ")");
-        objetivo.recibirDanio(danio);
-    }
-}
-
-class ReplayManager {
-    private List<Command> historial = new ArrayList<>();
-
-    public void registrarYEjecutar(Command c) {
-        c.execute();
-        historial.add(c);
-    }
-
-    public void reproducir() {
-        System.out.println("\n=== REPLAY DE LA PARTIDA ===");
-        for (Command c : historial) {
-            c.execute();
+    public double calcularTotal(List<Producto> productos) {
+        if (estrategia == null) {
+            System.out.println("Error: Primero seleccione una estrategia.");
+            return 0;
         }
+        return estrategia.calcularPrecioFinal(productos);
+    }
+    
+    public String getNombreEstrategiaActual() {
+        return estrategia != null ? estrategia.getNombre() : "Ninguna";
     }
 }
 
-// ---------- CLASE PRINCIPAL ----------
+// 4. Clase Principal (Menú Interactivo)
 public class ejercicio2 {
     public static void main(String[] args) {
-        Personaje heroe = new Personaje("Héroe", 100);
-        Personaje villano = new Personaje("Villano", 120);
+        Scanner scanner = new Scanner(System.in);
+        CalculadoraDePrecios calculadora = new CalculadoraDePrecios();
+        
+        // Creamos una lista de productos de prueba para simular un carrito
+        List<Producto> carrito = new ArrayList<>();
+        carrito.add(new Producto("Camisa", 50.0));
+        carrito.add(new Producto("Pantalón", 80.0));
+        carrito.add(new Producto("Camisa", 50.0)); // Producto repetido para probar la estrategia 3
+        carrito.add(new Producto("Medias", 10.0)); // Producto barato para probar la estrategia 4
 
-        HUDObserver hud = new HUDObserver();
-        heroe.attach(hud);
-        villano.attach(hud);
+        int opcion = 0;
+        
+        System.out.println("=========================================");
+        System.out.println("   SISTEMA DE DESCUENTOS (STRATEGY)");
+        System.out.println("=========================================");
+        System.out.println("Carrito de compras actual:");
+        for (Producto p : carrito) {
+            System.out.println(" - " + p);
+        }
+        System.out.println("=========================================");
 
-        ReplayManager replay = new ReplayManager();
-
-        replay.registrarYEjecutar(new AtacarCommand(heroe, villano, new AtaqueEspada()));
-        replay.registrarYEjecutar(new AtacarCommand(villano, heroe, new AtaqueArco()));
-        replay.registrarYEjecutar(new AtacarCommand(heroe, villano, new AtaqueMagia()));
-
-        System.out.println("\n--- Curación ---");
-        heroe.curar(20);
-
-        replay.reproducir();
+        while (opcion != 5) {
+            System.out.println("\nSeleccione una estrategia de descuento:");
+            System.out.println("1. Sin Descuento");
+            System.out.println("2. Descuento Fijo (10%)");
+            System.out.println("3. Descuento Porcentual (30% por 2 productos iguales)");
+            System.out.println("4. Descuento Acumulado (50% al más barato de 3 productos)");
+            System.out.println("5. Salir");
+            System.out.print("Opción: ");
+            
+            try {
+                opcion = scanner.nextInt();
+                
+                switch (opcion) {
+                    case 1:
+                        calculadora.setEstrategia(new SinDescuento());
+                        break;
+                    case 2:
+                        calculadora.setEstrategia(new DescuentoFijo());
+                        break;
+                    case 3:
+                        calculadora.setEstrategia(new DescuentoPorcentual());
+                        break;
+                    case 4:
+                        calculadora.setEstrategia(new DescuentoPorcentualAcumulado());
+                        break;
+                    case 5:
+                        System.out.println("Saliendo del sistema... ¡Hasta luego!");
+                        continue;
+                    default:
+                        System.out.println("Opción inválida. Intente de nuevo.");
+                        continue;
+                }
+                
+                // Mostrar resultado
+                double totalOriginal = 0;
+                for (Producto p : carrito) totalOriginal += p.getPrecio();
+                
+                double totalFinal = calculadora.calcularTotal(carrito);
+                
+                System.out.println("\n--- RESULTADO ---");
+                System.out.println("Estrategia aplicada: " + calculadora.getNombreEstrategiaActual());
+                System.out.println("Total original: S/ " + totalOriginal);
+                System.out.println("Total a pagar:  S/ " + totalFinal);
+                System.out.println("-----------------");
+                
+            } catch (Exception e) {
+                System.out.println("Error: Por favor ingrese un número válido.");
+                scanner.nextLine(); // Limpiar el buffer
+                opcion = 0;
+            }
+        }
+        scanner.close();
     }
 }
